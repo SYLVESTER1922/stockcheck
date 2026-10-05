@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { loadExport, warningCounts, warningMessages, type ExportResult } from '../domain/export';
+import { warningCounts, warningMessages, type ExportResult } from '../domain/export';
 import { formatQuantity, formatUsd } from '../domain/format';
 
 const FIELD_LABELS = {
@@ -15,6 +15,7 @@ export function App() {
   const [result, setResult] = useState<ExportResult | null>(null);
 
   async function onFile(file: File) {
+    const { loadExport } = await import('../domain/workbook');
     setResult(loadExport(await file.arrayBuffer()));
   }
 

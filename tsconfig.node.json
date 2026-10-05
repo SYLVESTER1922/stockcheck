@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "tsBuildInfoFile": "node_modules/.tmp/node.tsbuildinfo"
+  },
+  "include": ["src/domain", "test", "e2e", "scripts", "vite.config.ts", "playwright.config.ts"]
+}

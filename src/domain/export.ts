@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import { readCost, readQuantity } from './cells';
 import { matchHeaders, type Field } from './headers';
 
@@ -24,15 +23,6 @@ export type Item = {
 export type ExportResult =
   | { ok: true; items: Item[]; matched: Partial<Record<Field, string>> }
   | { ok: false; message: string };
-
-/** Reads the first sheet of an Export file (spec §4.1). */
-export function loadExport(data: ArrayBuffer): ExportResult {
-  const workbook = XLSX.read(data, { type: 'array' });
-  const sheet = workbook.Sheets[workbook.SheetNames[0] ?? ''];
-  if (!sheet) return { ok: false, message: 'This file has no sheets.' };
-  const grid = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '', blankrows: false });
-  return parseGrid(grid);
-}
 
 /** Turns a grid (first row = headers) into Items. Pure: no SheetJS, no browser. */
 export function parseGrid(grid: unknown[][]): ExportResult {

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { loadExport, warningCounts, warningMessages } from '../src/domain/export';
+import { warningCounts, warningMessages } from '../src/domain/export';
+import { loadExport } from '../src/domain/workbook';
 import { makeExport } from './helpers/workbook';
 
 const fixture = (name: string) => {
