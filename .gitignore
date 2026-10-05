@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+.DS_Store
+
+# Client data and client-specific notes: never commit
+private-notes/
+*.xlsx
+*.xls
+*.csv
+!test/fixtures/**
