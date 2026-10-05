@@ -11,3 +11,4 @@ private-notes/
 *.xls
 *.csv
 !test/fixtures/**
+*.tsbuildinfo
