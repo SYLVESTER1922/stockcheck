@@ -67,9 +67,12 @@ export function App() {
               </tr>
             </thead>
             <tbody>
-              {result.items.map((item, i) => (
-                <tr key={i} className="border-t border-slate-200">
-                  <td>{item.name}</td>
+              {result.items.map((item) => (
+                <tr key={item.key} className="border-t border-slate-200">
+                  <td>
+                    {item.name}
+                    {item.duplicate !== null && <span className="ml-1 text-xs text-amber-700">#{item.duplicate}</span>}
+                  </td>
                   <td>{item.variant}</td>
                   <td className="text-right tabular-nums">
                     {item.expected === null ? 'unreadable' : formatQuantity(item.expected)}

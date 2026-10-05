@@ -1,5 +1,6 @@
 import { readCost, readQuantity } from './cells';
 import { matchHeaders, type Field } from './headers';
+import { assignKeys, type Keyed } from './keys';
 
 export type ItemFlag =
   | 'blank-expected'
@@ -8,7 +9,9 @@ export type ItemFlag =
   | 'no-cost'
   | 'unreadable-cost';
 
-export type Item = {
+export type Item = Keyed<ItemRow>;
+
+type ItemRow = {
   name: string;
   variant: string;
   sku: string;
@@ -37,7 +40,7 @@ export function parseGrid(grid: unknown[][]): ExportResult {
   };
   const cell = (row: unknown[], field: Field) => row[match.columns[field]!];
 
-  const items = rows.filter((row) => text(row, 'name') !== '').map((row) => toItem(row, text, cell));
+  const items = assignKeys(rows.filter((row) => text(row, 'name') !== '').map((row) => toItem(row, text, cell)));
   if (items.length === 0) return { ok: false, message: 'No items found: every row has a blank item name.' };
   return { ok: true, items, matched: match.matched };
 }
@@ -46,7 +49,7 @@ function toItem(
   row: unknown[],
   text: (row: unknown[], field: Field) => string,
   cell: (row: unknown[], field: Field) => unknown,
-): Item {
+): ItemRow {
   const expected = expectedFrom(cell(row, 'expected'));
   const cost = costFrom(cell(row, 'cost'));
   return {
@@ -80,6 +83,8 @@ export type WarningCounts = {
   blankExpected: number;
   unreadableExpected: number;
   negativeSystemStock: number;
+  duplicateItems: number;
+  duplicateGroups: number;
 };
 
 /** Import warnings are derived from Item flags, never stored separately. */
@@ -91,6 +96,8 @@ export function warningCounts(items: Item[]): WarningCounts {
     blankExpected: count('blank-expected'),
     unreadableExpected: count('unreadable-expected'),
     negativeSystemStock: count('negative-system-stock'),
+    duplicateItems: items.filter((i) => i.duplicate !== null).length,
+    duplicateGroups: items.filter((i) => i.duplicate === 1).length,
   };
 }
 
@@ -104,6 +111,10 @@ export function warningMessages(counts: WarningCounts): string[] {
     [counts.blankExpected, `${plural(counts.blankExpected, 'item has', 'items have')} a blank Expected, treated as 0.`],
     [counts.unreadableExpected, `${plural(counts.unreadableExpected, 'item has', 'items have')} an unreadable Expected, so no Variance.`],
     [counts.negativeSystemStock, `${plural(counts.negativeSystemStock, 'item has', 'items have')} Negative System Stock.`],
+    [
+      counts.duplicateItems,
+      `${counts.duplicateItems} Duplicate Items in ${plural(counts.duplicateGroups, 'group', 'groups')} share a name and variant. Each is listed separately with its cost.`,
+    ],
   ];
   return messages.filter(([n]) => n > 0).map(([, text]) => text);
 }

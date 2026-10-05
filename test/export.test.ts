@@ -100,6 +100,8 @@ describe('warningCounts', () => {
       blankExpected: 1,
       unreadableExpected: 1,
       negativeSystemStock: 2,
+      duplicateItems: 0,
+      duplicateGroups: 0,
     });
   });
 });
@@ -107,11 +109,58 @@ describe('warningCounts', () => {
 describe('warningMessages', () => {
   it('lists only non-zero warnings, in plain words', () => {
     expect(
-      warningMessages({ noCost: 7, unreadableCost: 0, blankExpected: 1, unreadableExpected: 0, negativeSystemStock: 12 }),
+      warningMessages({
+        noCost: 7,
+        unreadableCost: 0,
+        blankExpected: 1,
+        unreadableExpected: 0,
+        negativeSystemStock: 12,
+        duplicateItems: 0,
+        duplicateGroups: 0,
+      }),
     ).toEqual([
       '7 items have no cost, so their dollar Variance counts as $0.',
       '1 item has a blank Expected, treated as 0.',
       '12 items have Negative System Stock.',
     ]);
+  });
+});
+
+describe('Duplicate Items on import', () => {
+  it('keys Items and counts Duplicate Items and their groups', () => {
+    const { items } = loaded(
+      makeExport([
+        ['ITEM_NAME', 'VARIANT_NAME', 'STOCK', 'COST_PRICE'],
+        ['Sugar', '2kg', 1, 1.5],
+        ['Sugar', '2kg', 2, 1.75],
+        ['Oil', '2L', 3, 3],
+        ['Rice', '', 4, 2],
+        ['rice', '', 5, 2],
+        ['RICE', '', 6, 2],
+      ]),
+    );
+    expect(items.map((i) => i.key)).toEqual([
+      'name:sugar|2kg#1',
+      'name:sugar|2kg#2',
+      'name:oil|2l',
+      'name:rice|#1',
+      'name:rice|#2',
+      'name:rice|#3',
+    ]);
+    expect(warningCounts(items)).toMatchObject({ duplicateItems: 5, duplicateGroups: 2 });
+  });
+
+  it('describes duplicates in the import warnings', () => {
+    expect(
+      warningMessages({
+        noCost: 0,
+        unreadableCost: 0,
+        blankExpected: 0,
+        unreadableExpected: 0,
+        negativeSystemStock: 0,
+        duplicateItems: 4,
+        duplicateGroups: 2,
+      }),
+    ).toEqual(['4 Duplicate Items in 2 groups share a name and variant. Each is listed separately with its cost.']);
   });
 });
