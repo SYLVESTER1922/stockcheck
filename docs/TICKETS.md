@@ -166,7 +166,7 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 - [ ] Sticky offline: disabled, then offline, then still suspended.
 - [ ] Never cached: offline, `status.json` is not served from the service worker cache.
 - [ ] Every existing unit and end-to-end test passes unchanged.
-- [ ] Measured: time from a status push to the live file changing (recorded in the ticket notes).
+- [x] Measured: time from a status push to the live file changing: **83 s and 78 s** (2026-10-05), with `sw.js` unchanged both times. Phones pick it up on next open or foreground.
 
 ## T15: Report detail and formatting ⚪
 **Depends on:** T13. Excel report only; no change to counting. *(Added 2026-10-05.)*
