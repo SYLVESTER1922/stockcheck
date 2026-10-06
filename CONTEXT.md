@@ -105,3 +105,13 @@ _Avoid_: First count, original count
 **Count at Done**:
 An Item's Count the first time the Counter marked it Done, before Expected was revealed. Kept even if Tallies are later edited or removed, so the Session Report shows the blind count next to the final one.
 _Avoid_: First count, original count
+
+### Access
+
+**Access Switch**:
+Netrisyl's ability to suspend the starting of new Sessions, for non-payment or as an emergency stop. It never affects a Session already in progress: that can always be finished, backed up and exported. The client is told about it up front.
+_Avoid_: Kill switch, licence lock
+
+**Status File**:
+The small file Netrisyl publishes alongside the app that says whether new Sessions are allowed, and the message (with Netrisyl contact details) to show when they are not.
+_Avoid_: Config, flag

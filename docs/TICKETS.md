@@ -134,3 +134,36 @@ Search, pick an Item, type a Tally, commit, and see Expected, Count, Variance an
 - [ ] "Powered by Netrisyl Insights" with the logo in the footer of the start and Report screens, and as a line on the Excel Summary sheet. Plain text, not a link, not in the sticky header.
 - [ ] A brand palette derived from the logo, applied to brand parts only (accents, header, Done and primary buttons, active tab): navy `#041a47`, blue `#0a56b3`, deep blue `#063879`, and orange `#e76c0f` (decoration only, never text). Meaning colours (short, over, Look Again, warnings, errors) unchanged. Every text/background pair is WCAG AA.
 - [ ] All existing unit and end-to-end tests pass unchanged, including the 320 px layout test.
+
+## T14: Access switch ⚪
+**Depends on:** T13. Spec: ADR 0006. **Needs you before deploy:** Netrisyl contact details (name, email, phone/WhatsApp, hours) for the built-in contact block, and approval of the disclosure wording below.
+
+A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessions, for non-payment or as an emergency stop. It never deletes or locks a Counter's data.
+
+**Behaviour**
+- File format: `{ "newSessions": "enabled" | "disabled", "message": "" }`. Switching is a one-line edit and a push.
+- Fail-open with a sticky explicit answer: valid `enabled` → allowed; valid `disabled` → suspended; offline, over 3 s, 404, 5xx or malformed → no answer, keep the last explicit state; never heard → allowed.
+- Checks on open, on return to the foreground, and right before an Export is loaded.
+- While suspended, only "Load an Export" is blocked: the picker is replaced by the message and the contact block. Counting, editing, Done, report download, Save a backup, Restore a backup and Discard all keep working.
+- Mid-count: a calm notice, *"New counts are paused. You can finish, report and back up this count."*
+- Message: plain text only, at most 300 characters (then "…"); empty → *"New counts are paused by Netrisyl Insights."* A built-in "Contact Netrisyl Insights" block in plain text is always shown underneath.
+- `status.json` is never precached, and is fetched with `no-store` and a cache-busting query. The app version comes from the last app-code commit, so a status-only push doesn't show the update banner.
+
+**Disclosure wording (for approval).** An About section at the end of How to count, **not a numbered instruction**, so the existing "10 instructions" test is unchanged:
+> **About StockCheck.** StockCheck is provided by Netrisyl Insights. Netrisyl can pause the start of new counts, for non-payment or as an emergency stop if a fault is found. A count already in progress is never affected: it can always be finished, reported and backed up. *Version …* · *Powered by Netrisyl Insights*
+
+**Acceptance: unit tests (written first)**
+- [ ] Decision rule table: never heard + enabled → allowed; never heard + disabled → suspended; never heard + offline/timeout/404/500/malformed → allowed; suspended + offline/timeout/malformed → still suspended; suspended + enabled → allowed; allowed + timeout → still allowed.
+- [ ] Message: plain text, 300-character cap, empty fallback, contact block always present.
+- [ ] The committed `public/status.json` is valid.
+
+**Acceptance: end-to-end tests (Playwright fakes `status.json`)**
+- [ ] Enabled: loading an Export works as before.
+- [ ] Disabled: the message and contact block are shown, no picker is offered, and restoring a backup still works.
+- [ ] Offline or slow (> 3 s): loading an Export still works, with a delay under 4 s.
+- [ ] Mid-count: suspension arrives on return to the foreground; the notice appears; counting, Done, report download and Save a backup work; Tallies unchanged.
+- [ ] Lifted: disabled, then enabled, then loading works.
+- [ ] Sticky offline: disabled, then offline, then still suspended.
+- [ ] Never cached: offline, `status.json` is not served from the service worker cache.
+- [ ] Every existing unit and end-to-end test passes unchanged.
+- [ ] Measured: time from a status push to the live file changing (recorded in the ticket notes).
