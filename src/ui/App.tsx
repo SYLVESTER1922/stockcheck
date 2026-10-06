@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { parseBackup } from '../domain/backup';
 import type { Field } from '../domain/headers';
 import { canReplace, markReported, newSession, type Session } from '../domain/session';
 import { CountScreen } from './CountScreen';
@@ -6,6 +7,7 @@ import { ExportPicker } from './ExportPicker';
 import { HowToCount } from './HowToCount';
 import { ReplaceGuard } from './ReplaceGuard';
 import { ReportScreen } from './ReportScreen';
+import { RestorePicker } from './RestorePicker';
 import { UpdateBanner } from './UpdateBanner';
 import { loadSession, saveSession } from './storage';
 
@@ -21,6 +23,8 @@ export function App() {
   const [screen, setScreen] = useState<Screen>('count');
   const [replacing, setReplacing] = useState<Replacing>('no');
   const [help, setHelp] = useState(false);
+  /** A restored Session waiting for the guard (unreported Counts) to be resolved. */
+  const [pendingRestore, setPendingRestore] = useState<Session | null>(null);
 
   useEffect(() => saveSession(session), [session]);
 
@@ -31,6 +35,27 @@ export function App() {
     setError(null);
     setImportInfo({ matched: result.matched });
     setSession(newSession(file.name, new Date().toISOString(), result.items));
+    setReplacing('no');
+    setScreen('count');
+  }
+
+  /** Restoring replaces the Session, so it passes the same guard as a new Export (spec §4.10). */
+  async function onRestore(file: File) {
+    const result = parseBackup(await file.text());
+    if (!result.ok) return setError(result.message);
+    setError(null);
+    if (session && !canReplace(session)) {
+      setPendingRestore(result.session);
+      setReplacing('guard');
+      return;
+    }
+    replaceWith(result.session);
+  }
+
+  function replaceWith(next: Session | null) {
+    setSession(next);
+    setPendingRestore(null);
+    setImportInfo(null);
     setReplacing('no');
     setScreen('count');
   }
@@ -54,6 +79,7 @@ export function App() {
       {!help && (
         <>
           {showPicker && <ExportPicker onFile={onFile} />}
+          {!session && <RestorePicker onFile={onRestore} />}
           {session && replacing === 'pick' && (
             <button onClick={() => setReplacing('no')} className="mt-2 text-sm underline">
               Cancel
@@ -70,14 +96,15 @@ export function App() {
             <ReplaceGuard
               countedItems={Object.keys(session.tallies).length}
               onReportFirst={() => {
+                setPendingRestore(null);
                 setReplacing('no');
                 setScreen('report');
               }}
-              onDiscard={() => {
-                setSession(null);
+              onDiscard={() => replaceWith(pendingRestore)}
+              onKeepCounting={() => {
+                setPendingRestore(null);
                 setReplacing('no');
               }}
-              onKeepCounting={() => setReplacing('no')}
             />
           )}
 
@@ -97,7 +124,11 @@ export function App() {
               </nav>
 
               {screen === 'report' && (
-                <ReportScreen session={session} onReported={() => setSession((s) => s && markReported(s))} />
+                <ReportScreen
+                  session={session}
+                  onReported={() => setSession((s) => s && markReported(s))}
+                  onRestore={onRestore}
+                />
               )}
               {screen === 'count' && (
                 <CountScreen

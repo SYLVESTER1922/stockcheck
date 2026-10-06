@@ -1,13 +1,17 @@
 import { useMemo, useState } from 'react';
 import { formatQuantity, formatUsd } from '../domain/format';
+import { backupFileName, toBackup } from '../domain/backup';
 import { buildReport, reportFileName } from '../domain/report';
 import { hasCounts, isReported, type Session } from '../domain/session';
 import { download } from './download';
+import { RestorePicker } from './RestorePicker';
 import { loadNames, rememberNames } from './storage';
 
 const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
-export function ReportScreen({ session, onReported }: { session: Session; onReported: () => void }) {
+type Props = { session: Session; onReported: () => void; onRestore: (file: File) => void };
+
+export function ReportScreen({ session, onReported, onRestore }: Props) {
   const names = useMemo(loadNames, []);
   const [branch, setBranch] = useState(names.branches[0] ?? '');
   const [counter, setCounter] = useState(names.counters[0] ?? '');
@@ -21,6 +25,11 @@ export function ReportScreen({ session, onReported }: { session: Session; onRepo
     download(reportFileName(branch.trim(), counter.trim(), now), writeReport(report), XLSX_TYPE);
     rememberNames(branch.trim(), counter.trim());
     onReported();
+  }
+
+  function onBackup() {
+    const now = new Date();
+    download(backupFileName(now), toBackup(session, { savedAt: now.toISOString() }), 'application/json');
   }
 
   return (
@@ -102,6 +111,16 @@ export function ReportScreen({ session, onReported }: { session: Session; onRepo
           Download report
         </button>
       </form>
+      <div className="rounded-lg bg-white p-3 shadow-sm">
+        <h2 className="font-semibold">Backup</h2>
+        <p className="mt-1 text-sm text-rose-800">
+          This file contains cost prices and stock values. Send it only to the manager.
+        </p>
+        <button onClick={onBackup} className="mt-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium">
+          Save a backup
+        </button>
+        <RestorePicker onFile={onRestore} />
+      </div>
     </section>
   );
 }

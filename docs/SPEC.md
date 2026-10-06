@@ -160,9 +160,9 @@ Rows are sorted by Variance Value ascending, with Uncounted Items last. Uncounte
 
 ### 4.10 Backup and restore
 
-- **Backup:** a JSON file containing the whole Session (Items as loaded, Tallies, Count at Look Again, branch, Counter, Export file name and times, reported status) plus `app: "stockcheck"` and `format: 1`. The download screen says: *"This file contains cost prices and stock values. Send it only to the manager."*
+- **Backup:** a JSON file containing the whole Session (Items as loaded, Tallies, Done marks, Count at Done, Count at Look Again, Export file name and times, reported status) plus `app: "stockcheck"` and `format: 1`. Branch and Counter are not in the Session, so they are not in the Backup; the Report screen asks for them as usual. A newer `format` is refused with "update the app". The download screen says: *"This file contains cost prices and stock values. Send it only to the manager."*
 - **Restore:** replaces the current Session under the same reload guard. A file that isn't a valid StockCheck backup is refused with a clear message.
-- A test measures the real size of a 1,000-Item Backup.
+- A test measures the real size of a counted 1,000-Item Backup: 256 KB (measured).
 
 ### 4.11 How to count screen
 
