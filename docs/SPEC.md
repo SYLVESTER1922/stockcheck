@@ -170,7 +170,7 @@ Reachable from the start screen before any Export is loaded, and works offline. 
 
 1. **Required:** count only while the branch is closed. Load the Export right before you start counting. If you count on paper, type it in the same day.
 2. Count what you see, in the unit on the label. Never convert between Variants.
-3. Enter every location's number separately. The app adds them up.
+3. An item in several places: type each place's number and tap Another place, then tap Done after the last one.
 4. When the app says "look again", go and look: every place the Item could be stored for a shortage, or for an unbooked delivery for a surplus.
 5. Always open the app from the home-screen icon, never from a link in WhatsApp.
 6. Download the Session Report before loading a new Export. If you correct anything, download again; the newest report is the true one.
