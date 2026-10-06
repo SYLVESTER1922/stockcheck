@@ -1,4 +1,6 @@
+import { ABOUT_TEXT } from '../domain/access';
 import { INSTRUCTIONS } from '../domain/instructions';
+import { ContactBlock } from './ContactBlock';
 
 export function HowToCount({ onBack }: { onBack: () => void }) {
   return (
@@ -13,6 +15,12 @@ export function HowToCount({ onBack }: { onBack: () => void }) {
           </li>
         ))}
       </ol>
+      <div data-testid="about" className="mt-6 border-t border-slate-200 pt-4 text-sm">
+        <h3 className="font-semibold">About StockCheck</h3>
+        <p className="mt-1">{ABOUT_TEXT}</p>
+        <p className="mt-3 font-semibold">Contact Netrisyl Insights</p>
+        <ContactBlock />
+      </div>
       <button onClick={onBack} className="mt-4 h-12 w-full rounded-2xl bg-brand-blue font-semibold text-white">
         Back
       </button>

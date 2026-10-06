@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { isSuspended, type Access } from '../domain/access';
 import { parseBackup } from '../domain/backup';
 import { formatUsd } from '../domain/format';
 import type { Field } from '../domain/headers';
 import { buildReport } from '../domain/report';
 import { canReplace, markReported, newSession, type Session } from '../domain/session';
+import { loadAccess, refreshAccess } from './accessCheck';
 import { BottomNav, type Tab } from './BottomNav';
 import { CountScreen } from './CountScreen';
 import { ExportPicker } from './ExportPicker';
@@ -12,6 +14,7 @@ import { PoweredBy } from './PoweredBy';
 import { ReplaceGuard } from './ReplaceGuard';
 import { ReportScreen } from './ReportScreen';
 import { RestorePicker } from './RestorePicker';
+import { SuspendedPanel } from './SuspendedPanel';
 import { loadNames, loadSession, saveSession } from './storage';
 import { UpdateBanner } from './UpdateBanner';
 
@@ -28,9 +31,25 @@ export function App() {
   /** A restored Session waiting for the guard (unreported Counts) to be resolved. */
   const [pendingRestore, setPendingRestore] = useState<Session | null>(null);
 
+  const [access, setAccess] = useState<Access>(loadAccess);
+  const suspended = isSuspended(access);
+
   useEffect(() => saveSession(session), [session]);
 
+  // ADR 0006: check the Status File on open and whenever the app returns to the foreground.
+  useEffect(() => {
+    const check = () => void refreshAccess().then(setAccess);
+    const onVisible = () => document.visibilityState === 'visible' && check();
+    check();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
   async function onFile(file: File) {
+    // Check again right before starting a new Session; a slow or failed check never blocks (ADR 0006).
+    const latest = await refreshAccess();
+    setAccess(latest);
+    if (isSuspended(latest)) return;
     const { loadExport } = await import('../domain/workbook');
     const result = loadExport(await file.arrayBuffer());
     if (!result.ok) return setError(result.message);
@@ -71,13 +90,19 @@ export function App() {
       <main className="mx-auto max-w-xl px-4">
         <UpdateBanner />
 
+        {session && suspended && replacing === 'no' && tab !== 'help' && (
+          <p role="status" className="mt-3 rounded-2xl border border-slate-300 bg-white p-3 text-sm text-slate-700">
+            New counts are paused. You can finish, report and back up this count.
+          </p>
+        )}
+
         {tab === 'help' && <HowToCount onBack={() => setTab('count')} />}
         {tab !== 'help' && (
           <>
             {showPicker && (
               <section className="mt-4 space-y-1 rounded-2xl bg-white p-4 shadow-sm">
                 <h2 className="text-base font-semibold">{session ? 'Load a new Export' : 'Start a count'}</h2>
-                <ExportPicker onFile={onFile} />
+                {suspended && access ? <SuspendedPanel message={access.message} /> : <ExportPicker onFile={onFile} />}
                 {!session && <RestorePicker onFile={onRestore} />}
                 {session && (
                   <button onClick={() => setReplacing('no')} className="mt-2 h-11 text-sm font-medium text-slate-600 underline">

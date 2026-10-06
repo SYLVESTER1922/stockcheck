@@ -2,12 +2,23 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { execSync } from 'node:child_process';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Shown in the app footer so anyone can see which version a phone runs.
-const version =
-  process.env.STOCKCHECK_VERSION ??
-  (process.env.GITHUB_SHA ? `${process.env.GITHUB_SHA.slice(0, 7)} · ${new Date().toISOString().slice(0, 10)}` : 'dev');
+/**
+ * Shown in the app footer. Taken from the last commit that changed app code, ignoring
+ * public/status.json, so flipping the Access Switch rebuilds identical files and phones
+ * don't see a "new version" banner (ADR 0006).
+ */
+function appVersion(): string {
+  if (process.env.STOCKCHECK_VERSION) return process.env.STOCKCHECK_VERSION;
+  try {
+    return execSync(`git log -1 --format="%h · %cs" -- . ":(exclude)public/status.json"`, { encoding: 'utf8' }).trim() || 'dev';
+  } catch {
+    return 'dev';
+  }
+}
+const version = appVersion();
 
 // Served from the root of https://stockcheck.netrisyl.com (ADR 0005).
 export default defineConfig({
@@ -38,6 +49,8 @@ export default defineConfig({
       workbox: {
         // Precache everything, including the SheetJS chunk, so a cold start works with no signal.
         globPatterns: ['**/*.{js,css,html,png,jpg,webmanifest}'],
+        // The Access Switch must always come from the network (ADR 0006).
+        globIgnores: ['**/status.json'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
         // Take control of the open page once active, so "Update now" reloads even on a first visit.

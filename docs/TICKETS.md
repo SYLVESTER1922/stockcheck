@@ -136,7 +136,7 @@ Search, pick an Item, type a Tally, commit, and see Expected, Count, Variance an
 - [ ] All existing unit and end-to-end tests pass unchanged, including the 320 px layout test.
 
 ## T14: Access switch ⚪
-**Depends on:** T13. Spec: ADR 0006. **Needs you before deploy:** Netrisyl contact details (name, email, phone/WhatsApp, hours) for the built-in contact block, and approval of the disclosure wording below.
+**Depends on:** T13. Spec: ADR 0006. **Contact details (given):** Netrisyl Insights · netrisyl.support@netrisyl.com. Plain selectable text, no links; phone, WhatsApp or hours can be added later with a one-line change.
 
 A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessions, for non-payment or as an emergency stop. It never deletes or locks a Counter's data.
 
@@ -149,8 +149,8 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 - Message: plain text only, at most 300 characters (then "…"); empty → *"New counts are paused by Netrisyl Insights."* A built-in "Contact Netrisyl Insights" block in plain text is always shown underneath.
 - `status.json` is never precached, and is fetched with `no-store` and a cache-busting query. The app version comes from the last app-code commit, so a status-only push doesn't show the update banner.
 
-**Disclosure wording (for approval).** An About section at the end of How to count, **not a numbered instruction**, so the existing "10 instructions" test is unchanged:
-> **About StockCheck.** StockCheck is provided by Netrisyl Insights. Netrisyl can pause the start of new counts, for non-payment or as an emergency stop if a fault is found. A count already in progress is never affected: it can always be finished, reported and backed up. *Version …* · *Powered by Netrisyl Insights*
+**Disclosure wording (approved).** An About section at the end of How to count, **not a numbered instruction**, so the existing "10 instructions" test is unchanged:
+> **About StockCheck.** StockCheck is provided by Netrisyl Insights. Netrisyl can pause the start of new counts for non-payment, for breach of the agreement, or as an emergency stop if a fault is found. A count already in progress is never affected: it can always be finished, reported and backed up.
 
 **Acceptance: unit tests (written first)**
 - [ ] Decision rule table: never heard + enabled → allowed; never heard + disabled → suspended; never heard + offline/timeout/404/500/malformed → allowed; suspended + offline/timeout/malformed → still suspended; suspended + enabled → allowed; allowed + timeout → still allowed.
