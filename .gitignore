@@ -12,3 +12,4 @@ private-notes/
 *.csv
 !test/fixtures/**
 *.tsbuildinfo
+.e2e-build/

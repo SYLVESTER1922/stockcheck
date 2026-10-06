@@ -45,3 +45,14 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+      # ADR 0006: prove the live Access Switch matches what was committed. Fails the run if not.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            public/status.json
+            scripts/check-live-status.mts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check the live status.json matches the committed one
+        run: node scripts/check-live-status.mts "${{ steps.deployment.outputs.page_url }}" 120000

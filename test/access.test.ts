@@ -87,7 +87,7 @@ describe('contact block', () => {
 });
 
 describe('the committed public/status.json', () => {
-  it('is a valid Status File that allows new Sessions', () => {
-    expect(parseStatus(readFileSync('public/status.json', 'utf8'))).toMatchObject({ kind: 'answer', newSessions: 'enabled' });
+  it('is a valid Status File (enabled or disabled), so a typo can never deploy', () => {
+    expect(parseStatus(readFileSync('public/status.json', 'utf8'))).toMatchObject({ kind: 'answer' });
   });
 });
