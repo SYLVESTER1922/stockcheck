@@ -31,7 +31,7 @@ export function ReplaceGuard({ countedItems, onReportFirst, onDiscard, onKeepCou
           <p className="font-semibold">This Session has counts that aren't in a downloaded report.</p>
           <p className="mt-1">Loading a new Export or restoring a backup clears them. Download the report first, or discard them.</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <button onClick={onReportFirst} className="h-12 rounded-2xl bg-indigo-600 px-4 font-semibold text-white">
+            <button onClick={onReportFirst} className="h-12 rounded-2xl bg-brand-blue px-4 font-semibold text-white">
               Download the report first
             </button>
             <button onClick={() => setConfirming(true)} className="h-12 rounded-2xl border-2 border-amber-300 bg-white px-4 font-medium">

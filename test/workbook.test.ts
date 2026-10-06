@@ -61,4 +61,9 @@ describe('writeReport', () => {
     const summary = XLSX.utils.sheet_to_json<string[]>(book.Sheets.Summary!, { header: 1 }).flat().join(' ');
     expect(summary).toContain('1 item is In progress (Done not tapped)');
   });
+
+  it('credits Netrisyl Insights on the Summary sheet', () => {
+    const summary = XLSX.utils.sheet_to_json<string[]>(book.Sheets.Summary!, { header: 1 }).flat();
+    expect(summary).toContain('Powered by Netrisyl Insights');
+  });
 });

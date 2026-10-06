@@ -24,7 +24,7 @@ export function BottomNav({ tab, hasSession, uncounted, onTab }: Props) {
               onClick={() => onTab(t.id)}
               aria-current={tab === t.id ? 'page' : undefined}
               className={`relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold ${
-                tab === t.id ? 'text-indigo-700' : 'text-slate-500'
+                tab === t.id ? 'text-brand-blue' : 'text-slate-500'
               }`}
             >
               <span aria-hidden className="text-lg leading-none">

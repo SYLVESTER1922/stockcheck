@@ -37,7 +37,7 @@ export default defineConfig({
       },
       workbox: {
         // Precache everything, including the SheetJS chunk, so a cold start works with no signal.
-        globPatterns: ['**/*.{js,css,html,png,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,png,jpg,webmanifest}'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
         // Take control of the open page once active, so "Update now" reloads even on a first visit.

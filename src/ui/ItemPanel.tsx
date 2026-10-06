@@ -45,7 +45,7 @@ export function ItemPanel({ item, session, onChange, onClose }: Props) {
   }
 
   return (
-    <section data-testid="item-panel" className="mt-3 rounded-2xl border-2 border-indigo-200 bg-white p-4 shadow-sm">
+    <section data-testid="item-panel" className="mt-3 rounded-2xl border-2 border-blue-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between">
         <p className="text-lg font-semibold">
           {item.name} <span className="font-normal text-slate-500">{item.variant}</span>
@@ -140,11 +140,11 @@ export function ItemPanel({ item, session, onChange, onClose }: Props) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="0"
-          className="h-16 w-full rounded-2xl border-2 border-slate-300 px-4 text-center text-3xl font-semibold tabular-nums outline-none placeholder:text-slate-300 focus:border-indigo-500"
+          className="h-16 w-full rounded-2xl border-2 border-slate-300 px-4 text-center text-3xl font-semibold tabular-nums outline-none placeholder:text-slate-300 focus:border-brand-blue"
         />
         {echo && <p className="text-center text-sm text-slate-600">{echo}</p>}
         {line.status === 'finished' ? (
-          <button type="submit" className="h-14 w-full rounded-2xl bg-indigo-600 text-lg font-bold text-white shadow-sm active:bg-indigo-700">
+          <button type="submit" className="h-14 w-full rounded-2xl bg-brand-blue text-lg font-bold text-white shadow-sm active:bg-brand-deep">
             Add
           </button>
         ) : (
@@ -158,7 +158,7 @@ export function ItemPanel({ item, session, onChange, onClose }: Props) {
             </button>
             <button
               type="submit"
-              className="h-14 flex-1 rounded-2xl bg-indigo-600 text-lg font-bold text-white shadow-sm active:bg-indigo-700"
+              className="h-14 flex-1 rounded-2xl bg-brand-blue text-lg font-bold text-white shadow-sm active:bg-brand-deep"
             >
               Done <span aria-hidden>✓</span>
             </button>

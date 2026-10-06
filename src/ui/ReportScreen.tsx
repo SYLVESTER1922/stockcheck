@@ -4,6 +4,7 @@ import { backupFileName, toBackup } from '../domain/backup';
 import { buildReport, reportFileName } from '../domain/report';
 import { hasCounts, isReported, type Session } from '../domain/session';
 import { download } from './download';
+import { PoweredBy } from './PoweredBy';
 import { RestorePicker } from './RestorePicker';
 import { loadNames, rememberNames } from './storage';
 
@@ -34,12 +35,12 @@ export function ReportScreen({ session, onReported, onRestore }: Props) {
 
   return (
     <section className="mt-4 space-y-4">
-      <div className="rounded-2xl bg-gradient-to-br from-indigo-700 to-violet-800 p-4 text-white shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-100">Net Variance Value (at cost)</p>
+      <div className="rounded-2xl bg-gradient-to-br from-brand-deep to-brand-blue p-4 text-white shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-blue-100">Net Variance Value (at cost)</p>
         <p data-testid="net-value" className="whitespace-nowrap text-4xl font-bold tabular-nums">
           {formatUsd(preview.netValue)}
         </p>
-        <p className="mt-1 text-sm text-indigo-100 tabular-nums">
+        <p className="mt-1 text-sm text-blue-100 tabular-nums">
           {formatUsd(preview.shortageValue)} short · {formatUsd(preview.surplusValue)} over ·{' '}
           {formatQuantity(preview.unitsShort)} units short
         </p>
@@ -84,7 +85,7 @@ export function ReportScreen({ session, onReported, onRestore }: Props) {
             list="branches"
             value={branch}
             onChange={(e) => setBranch(e.target.value)}
-            className="mt-1 h-12 w-full rounded-xl border-2 border-slate-300 px-3 text-base outline-none focus:border-indigo-500"
+            className="mt-1 h-12 w-full rounded-xl border-2 border-slate-300 px-3 text-base outline-none focus:border-brand-blue"
           />
         </label>
         <datalist id="branches">
@@ -98,7 +99,7 @@ export function ReportScreen({ session, onReported, onRestore }: Props) {
             list="counters"
             value={counter}
             onChange={(e) => setCounter(e.target.value)}
-            className="mt-1 h-12 w-full rounded-xl border-2 border-slate-300 px-3 text-base outline-none focus:border-indigo-500"
+            className="mt-1 h-12 w-full rounded-xl border-2 border-slate-300 px-3 text-base outline-none focus:border-brand-blue"
           />
         </label>
         <datalist id="counters">
@@ -109,7 +110,7 @@ export function ReportScreen({ session, onReported, onRestore }: Props) {
         <button
           type="submit"
           disabled={!ready}
-          className="h-14 w-full rounded-2xl bg-indigo-600 text-lg font-bold text-white shadow-sm disabled:bg-slate-300 disabled:text-slate-600"
+          className="h-14 w-full rounded-2xl bg-brand-blue text-lg font-bold text-white shadow-sm disabled:bg-slate-300 disabled:text-slate-600"
         >
           Download report
         </button>
@@ -124,6 +125,7 @@ export function ReportScreen({ session, onReported, onRestore }: Props) {
         </button>
         <RestorePicker onFile={onRestore} />
       </div>
+      <PoweredBy />
     </section>
   );
 }

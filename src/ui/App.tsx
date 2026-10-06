@@ -8,6 +8,7 @@ import { BottomNav, type Tab } from './BottomNav';
 import { CountScreen } from './CountScreen';
 import { ExportPicker } from './ExportPicker';
 import { HowToCount } from './HowToCount';
+import { PoweredBy } from './PoweredBy';
 import { ReplaceGuard } from './ReplaceGuard';
 import { ReportScreen } from './ReportScreen';
 import { RestorePicker } from './RestorePicker';
@@ -86,6 +87,8 @@ export function App() {
               </section>
             )}
 
+            {!session && <PoweredBy />}
+
             {error && (
               <p role="alert" className="mt-4 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800">
                 {error}
@@ -149,17 +152,17 @@ function Header({ session }: { session: Session | null }) {
   const progress = summary && summary.items > 0 ? Math.round((summary.finished / summary.items) * 100) : 0;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
+    <header className="sticky top-0 z-30 border-b-[3px] border-brand-orange bg-white">
       <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-2">
         <div className="flex items-center gap-2">
           <div
             aria-hidden
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-bold text-white"
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-navy text-sm font-bold text-white"
           >
             ✓
           </div>
           <div className="leading-tight">
-            <h1 className="text-sm font-bold">StockCheck</h1>
+            <h1 className="text-sm font-bold text-brand-navy">StockCheck</h1>
             <p className="text-xs text-slate-500">{branch || 'No branch set'}</p>
           </div>
         </div>

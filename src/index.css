@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+/* Netrisyl brand palette, derived from the Netrisyl Insights logo (T13). Brand parts only:
+   meaning colours (rose = short, emerald = over, amber = Look Again / warnings) stay separate. */
+@theme {
+  --color-brand-navy: #041a47; /* "Netrisyl": header title, logo tile */
+  --color-brand-blue: #0a56b3; /* globe: Done, primary buttons, active tab (white on it 7.0:1) */
+  --color-brand-deep: #063879; /* globe: pressed state, report card (white 11.4:1) */
+  --color-brand-orange: #e76c0f; /* "Insights": decoration only, never text (3.2:1) */
+}

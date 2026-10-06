@@ -13,7 +13,7 @@ export function HowToCount({ onBack }: { onBack: () => void }) {
           </li>
         ))}
       </ol>
-      <button onClick={onBack} className="mt-4 h-12 w-full rounded-2xl bg-indigo-600 font-semibold text-white">
+      <button onClick={onBack} className="mt-4 h-12 w-full rounded-2xl bg-brand-blue font-semibold text-white">
         Back
       </button>
     </section>

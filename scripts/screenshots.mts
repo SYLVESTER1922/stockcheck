@@ -18,6 +18,7 @@ await page.getByRole('button', { name: 'Done' }).click();
 await shot('3-done-look-again');
 await page.getByRole('button', { name: 'Report', exact: true }).click();
 await shot('4-report');
+await page.screenshot({ path: `${outDir}/4b-report-full-page.png`, fullPage: true });
 await page.getByRole('button', { name: 'Count', exact: true }).click();
 await page.getByRole('button', { name: 'Load a new Export' }).click();
 await shot('5-guard');

@@ -125,3 +125,12 @@ Search, pick an Item, type a Tally, commit, and see Expected, Count, Variance an
 - [ ] The overall look follows the v1 prototype: a header with branch and progress, bottom navigation, cards and its colours.
 - [ ] No behaviour changes: every existing unit and end-to-end test passes unchanged.
 
+
+## T13: Netrisyl branding ⚪
+**Depends on:** T12. Branding only; no behaviour changes. *(Added 2026-10-05.)*
+
+**Acceptance**
+- [ ] The Netrisyl Insights logo, copied in as a small local asset (`public/netrisyl-logo.jpg`, 11 KB, 300×79) and cached for offline use.
+- [ ] "Powered by Netrisyl Insights" with the logo in the footer of the start and Report screens, and as a line on the Excel Summary sheet. Plain text, not a link, not in the sticky header.
+- [ ] A brand palette derived from the logo, applied to brand parts only (accents, header, Done and primary buttons, active tab): navy `#041a47`, blue `#0a56b3`, deep blue `#063879`, and orange `#e76c0f` (decoration only, never text). Meaning colours (short, over, Look Again, warnings, errors) unchanged. Every text/background pair is WCAG AA.
+- [ ] All existing unit and end-to-end tests pass unchanged, including the 320 px layout test.

@@ -73,6 +73,8 @@ export function writeReport(report: Report): ArrayBuffer {
     ...s.warnings.slice(1).map((w) => ['', w]),
     [],
     ['Note', s.note],
+    [],
+    ['Powered by Netrisyl Insights'],
   ];
 
   const toCells = (rows: Report['detail']) => [
