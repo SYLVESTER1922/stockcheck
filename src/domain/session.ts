@@ -14,6 +14,8 @@ export type Session = {
   tallies: Record<string, number[]>;
   /** Items the Counter has marked Done. Only these reveal Expected and Variance. */
   finished: Record<string, true>;
+  /** Count (thousandths) when Done was first tapped, before Expected was revealed. Never overwritten or cleared. */
+  countAtDone: Record<string, number>;
   /** Count (thousandths) when Look Again first fired. Never overwritten or cleared. */
   countAtLookAgain: Record<string, number>;
 };
@@ -32,7 +34,16 @@ export type Line =
     };
 
 export function newSession(exportFileName: string, loadedAt: string, items: Item[]): Session {
-  return { exportFileName, loadedAt, lastChangeAt: null, items, tallies: {}, finished: {}, countAtLookAgain: {} };
+  return {
+    exportFileName,
+    loadedAt,
+    lastChangeAt: null,
+    items,
+    tallies: {},
+    finished: {},
+    countAtDone: {},
+    countAtLookAgain: {},
+  };
 }
 
 /** Another place: add a Tally. Done = addTally (if typed) + finishItem. */
@@ -50,8 +61,13 @@ export function removeTally(session: Session, item: Item, index: number, at: str
 }
 
 export function finishItem(session: Session, item: Item, at: string): Session {
-  if (!session.tallies[item.key]?.length) return session;
-  return recordLookAgain({ ...session, finished: { ...session.finished, [item.key]: true }, lastChangeAt: at }, item);
+  const tallies = session.tallies[item.key];
+  if (!tallies?.length) return session;
+  const countAtDone =
+    item.key in session.countAtDone
+      ? session.countAtDone
+      : { ...session.countAtDone, [item.key]: tallies.reduce((sum, t) => sum + t, 0) };
+  return recordLookAgain({ ...session, finished: { ...session.finished, [item.key]: true }, countAtDone, lastChangeAt: at }, item);
 }
 
 /** Count, Variance and Variance Value are derived from the Tallies every time, never stored. */

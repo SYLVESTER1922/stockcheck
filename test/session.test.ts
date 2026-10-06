@@ -83,6 +83,28 @@ describe('Session', () => {
     });
   });
 
+  describe('Count at Done', () => {
+    it('records the total when Done is first tapped, before Expected is revealed', () => {
+      const session = finishItem(addTally(addTally(start(), item(), 4_000, AT), item(), 5_000, AT), item(), AT);
+      expect(session.countAtDone).toEqual({ [item().key]: 9_000 });
+    });
+
+    it('is not recorded while the Item is in progress', () => {
+      expect(addTally(start(), item(), 4_000, AT).countAtDone).toEqual({});
+    });
+
+    it('is kept when a Tally is edited or added after Done', () => {
+      const session = addTally(editTally(done(9_000), item(), 0, 7_000, AT), item(), 1_000, AT);
+      expect(session.countAtDone).toEqual({ [item().key]: 9_000 });
+    });
+
+    it('is kept even if every Tally is removed and the Item is Done again', () => {
+      let session = removeTally(done(9_000), item(), 0, AT);
+      session = finishItem(addTally(session, item(), 3_000, AT), item(), AT);
+      expect(session.countAtDone).toEqual({ [item().key]: 9_000 });
+    });
+  });
+
   describe('editing and removing Tallies', () => {
     it('edits one Tally in place', () => {
       const session = editTally(addTally(addTally(start(), item(), 4_000, AT), item(), 6_000, AT), item(), 1, 5_000, AT);

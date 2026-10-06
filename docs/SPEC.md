@@ -141,13 +141,14 @@ Branches of a retailer on Zobaze POS need to compare physical stock with what Zo
 - Shortage value, surplus value, and the **net Variance Value** (the headline)
 - Items that prompted at least once
 - Items on the Recount List
-- Every import warning count
+- Every import warning count, and a line naming how many Items are In progress (Done not tapped)
 - The note: *"A shortage may be stock on the shelf under a different name or not set up in Zobaze. Check the Recount List and the paper list before treating it as a loss."*
 
 **Variance Detail sheet:** one row per Item, with these columns:
 - Session start, Category, Item name, Variant, Duplicate #, SKU
 - Expected, Count, Variance, Cost, Variance Value
 - Status: MATCH / SHORT / OVER / IN PROGRESS / NOT COUNTED / EXPECTED UNREADABLE. IN PROGRESS rows show the Count but no Variance, and are excluded from totals and the Recount List.
+- Count at Done (the total when Done was first tapped, before Expected was revealed; never overwritten)
 - Count at Look Again
 - Flags: Negative System Stock; Ended exactly at Expected (prompted Items only); No cost; Duplicate
 

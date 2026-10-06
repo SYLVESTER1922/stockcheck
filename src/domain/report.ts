@@ -22,6 +22,7 @@ export type ReportRow = {
   cost: number;
   value: number | null;
   status: Status;
+  countAtDone: number | null;
   countAtLookAgain: number | null;
   flags: string[];
   /** Finished with a Variance large enough for the Recount List. */
@@ -63,6 +64,7 @@ export function buildReport(session: Session, meta: ReportMeta): Report {
   const sum = (values: (number | null)[]) => values.reduce<number>((total, v) => total + (v ?? 0), 0);
   const withVariance = detail.filter((r) => r.variance !== null);
   const shortRows = withVariance.filter((r) => r.variance! < 0);
+  const inProgress = detail.filter((r) => r.status === 'IN PROGRESS').length;
   const overRows = withVariance.filter((r) => r.variance! > 0);
 
   return {
@@ -75,7 +77,7 @@ export function buildReport(session: Session, meta: ReportMeta): Report {
       countingFinished: session.lastChangeAt,
       items: detail.length,
       finished: detail.filter((r) => !['IN PROGRESS', 'NOT COUNTED'].includes(r.status)).length,
-      inProgress: detail.filter((r) => r.status === 'IN PROGRESS').length,
+      inProgress,
       uncounted: detail.filter((r) => r.status === 'NOT COUNTED').length,
       matching: detail.filter((r) => r.status === 'MATCH').length,
       short: shortRows.length,
@@ -87,10 +89,17 @@ export function buildReport(session: Session, meta: ReportMeta): Report {
       netValue: sum(detail.map((r) => r.value)),
       promptedItems: Object.keys(session.countAtLookAgain).length,
       recountItems: recount.length,
-      warnings: warningMessages(warningCounts(session.items)),
+      warnings: [...warningMessages(warningCounts(session.items)), ...inProgressWarning(inProgress)],
       note: SHORTAGE_NOTE,
     },
   };
+}
+
+function inProgressWarning(n: number): string[] {
+  if (n === 0) return [];
+  const subject = n === 1 ? '1 item is' : `${n} items are`;
+  const pronoun = n === 1 ? 'it shows' : 'they show';
+  return [`${subject} In progress (Done not tapped), so ${pronoun} no Variance and ${n === 1 ? 'is' : 'are'} not in the totals.`];
 }
 
 function toRow(session: Session, item: Item): ReportRow {
@@ -105,6 +114,7 @@ function toRow(session: Session, item: Item): ReportRow {
     sku: item.sku,
     expected: item.expected,
     cost: item.cost,
+    countAtDone: session.countAtDone[item.key] ?? null,
     countAtLookAgain,
   };
   const itemFlags = [

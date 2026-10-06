@@ -76,6 +76,13 @@ describe('buildReport: Variance Detail', () => {
     expect(row('Short').countAtLookAgain).toBeNull();
   });
 
+  it('carries the Count at Done: the blind count, kept after later Tallies', () => {
+    expect(row('Resolved')).toMatchObject({ countAtDone: 4_000, count: 10_000 });
+    expect(row('Short').countAtDone).toBe(9_000);
+    expect(row('Progress').countAtDone).toBeNull();
+    expect(row('Uncounted').countAtDone).toBeNull();
+  });
+
   it('flags Items that prompted and ended exactly at Expected, and other Item flags', () => {
     expect(row('Resolved').flags).toEqual(['Ended exactly at Expected']);
     expect(row('Uncounted').flags).toEqual(['Negative System Stock']);
@@ -136,6 +143,7 @@ describe('buildReport: Summary', () => {
     expect(summary.warnings).toEqual([
       '1 item has an unreadable Expected, so no Variance.',
       '1 item has Negative System Stock.',
+      '1 item is In progress (Done not tapped), so it shows no Variance and is not in the totals.',
     ]);
   });
 });

@@ -101,3 +101,7 @@ _Avoid_: Exceptions, problem list
 **Count at Look Again**:
 An Item's Count at the moment Look Again first fired for it, kept so the Session Report can show what a second look changed. Items that never prompted have none.
 _Avoid_: First count, original count
+
+**Count at Done**:
+An Item's Count the first time the Counter marked it Done, before Expected was revealed. Kept even if Tallies are later edited or removed, so the Session Report shows the blind count next to the final one.
+_Avoid_: First count, original count

@@ -8,7 +8,7 @@ export function loadSession(): Session | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     // Sessions saved before a field existed get its empty default.
-    return { lastChangeAt: null, finished: {}, countAtLookAgain: {}, ...(JSON.parse(raw) as Partial<Session>) } as Session;
+    return { lastChangeAt: null, finished: {}, countAtDone: {}, countAtLookAgain: {}, ...(JSON.parse(raw) as Partial<Session>) } as Session;
   } catch {
     return null;
   }

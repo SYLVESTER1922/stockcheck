@@ -17,7 +17,11 @@ A single-location Item costs the same taps as before (type, Done). A multi-locat
 Two further rules (2026-10-05):
 
 1. **In progress.** An Item with Tallies but no Done is shown as "in progress" in the app, and flagged IN PROGRESS in the Session Report, so a forgotten Done is never mistaken for a finished count. Its Variance is left blank in the report and it is excluded from totals and the Recount List.
-2. **Edits after Done.** Editing or removing a Tally after Done is allowed. Count at Look Again, once recorded, is never overwritten or cleared by later edits or removals, so the audit trail survives.
+2. **Edits after Done.** Editing or removing a Tally after Done is allowed. Two values are kept for the audit trail and are never overwritten or cleared by later edits or removals:
+   - **Count at Done:** the Item's total the first time Done was tapped, before Expected was revealed. Recorded for every Item.
+   - **Count at Look Again:** the Item's Count the first time Look Again fired. Recorded only for prompted Items.
+
+   The Session Report shows both next to the final Count, so a manager can see what the blind count was, what a second look changed, and what changed after Expected was seen.
 
 The Counter may change or add Tallies after looking again. The Item's Count at the moment Look Again first fired is kept as its Count at Look Again, and the Session Report shows it next to the final Count. Prompted Items that end exactly at Expected are flagged for the manager to ask about. **The audit value of the app comes from this prompt:** the report shows where a second look changed the number and where it didn't.
 
