@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Field } from '../domain/headers';
 import { newSession, type Session } from '../domain/session';
 import { CountScreen } from './CountScreen';
+import { ReportScreen } from './ReportScreen';
 import { loadSession, saveSession } from './storage';
 
 export type ImportInfo = { matched: Partial<Record<Field, string>> };
@@ -10,6 +11,7 @@ export function App() {
   const [session, setSession] = useState<Session | null>(loadSession);
   const [importInfo, setImportInfo] = useState<ImportInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [screen, setScreen] = useState<'count' | 'report'>('count');
 
   useEffect(() => saveSession(session), [session]);
 
@@ -45,6 +47,23 @@ export function App() {
       )}
 
       {session && (
+        <nav className="mt-3 flex gap-2">
+          {(['count', 'report'] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setScreen(s)}
+              aria-current={screen === s ? 'page' : undefined}
+              className={`rounded-full px-4 py-1 text-sm ${screen === s ? 'bg-slate-900 text-white' : 'bg-white text-slate-700'}`}
+            >
+              {s === 'count' ? 'Count' : 'Report'}
+            </button>
+          ))}
+        </nav>
+      )}
+
+      {session && screen === 'report' && <ReportScreen session={session} />}
+
+      {session && screen === 'count' && (
         <CountScreen
           session={session}
           importInfo={importInfo}

@@ -22,3 +22,26 @@ export function saveSession(session: Session | null): void {
     // Storage full or blocked: the Session stays in memory. Backup (T11) is the safety net.
   }
 }
+
+// Branch and Counter names typed on this phone, offered as <datalist> suggestions (Q14).
+const NAMES_KEY = 'stockcheck.names.v1';
+export type Names = { branches: string[]; counters: string[] };
+
+export function loadNames(): Names {
+  try {
+    const raw = localStorage.getItem(NAMES_KEY);
+    return raw ? (JSON.parse(raw) as Names) : { branches: [], counters: [] };
+  } catch {
+    return { branches: [], counters: [] };
+  }
+}
+
+export function rememberNames(branch: string, counter: string): void {
+  const names = loadNames();
+  const add = (list: string[], value: string) => [value, ...list.filter((v) => v !== value)].slice(0, 10);
+  try {
+    localStorage.setItem(NAMES_KEY, JSON.stringify({ branches: add(names.branches, branch), counters: add(names.counters, counter) }));
+  } catch {
+    // Suggestions are a convenience; losing them is harmless.
+  }
+}
