@@ -6,7 +6,9 @@ const KEY = 'stockcheck.session.v1';
 export function loadSession(): Session | null {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Session) : null;
+    if (!raw) return null;
+    // Sessions saved before a field existed get its empty default.
+    return { lastChangeAt: null, finished: {}, countAtLookAgain: {}, ...(JSON.parse(raw) as Partial<Session>) } as Session;
   } catch {
     return null;
   }

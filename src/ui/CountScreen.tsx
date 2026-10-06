@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { warningCounts, warningMessages, type Item } from '../domain/export';
+import { warningCounts, warningMessages } from '../domain/export';
 import { formatQuantity, formatUsd } from '../domain/format';
 import { searchItems } from '../domain/search';
-import { addTally, lineFor, type Session } from '../domain/session';
-import { parseTally } from '../domain/tally';
+import { lineFor, type Session } from '../domain/session';
+import { ItemPanel } from './ItemPanel';
 import type { ImportInfo } from './App';
 
 const MAX_RESULTS = 30;
@@ -69,7 +69,7 @@ export function CountScreen({ session, importInfo, onChange, onNewExport }: Prop
           key={selected.key}
           item={selected}
           session={session}
-          onAdd={(value) => onChange(addTally(session, selected.key, value))}
+          onChange={onChange}
           onClose={() => setSelectedKey(null)}
         />
       )}
@@ -89,10 +89,11 @@ export function CountScreen({ session, importInfo, onChange, onNewExport }: Prop
                     #{item.duplicate} · {formatUsd(item.cost)}
                   </span>
                 )}
-                {line.counted && (
-                  <span className="float-right text-xs text-emerald-700">
-                    ✓ {line.tallies.map(formatQuantity).join(' + ')}
-                  </span>
+                {line.status === 'in-progress' && (
+                  <span className="float-right text-xs text-amber-700">in progress</span>
+                )}
+                {line.status === 'finished' && (
+                  <span className="float-right text-xs text-emerald-700">✓ {formatQuantity(line.count)}</span>
                 )}
               </button>
             </li>
@@ -102,80 +103,3 @@ export function CountScreen({ session, importInfo, onChange, onNewExport }: Prop
     </>
   );
 }
-
-function ItemPanel({
-  item,
-  session,
-  onAdd,
-  onClose,
-}: {
-  item: Item;
-  session: Session;
-  onAdd: (thousandths: number) => void;
-  onClose: () => void;
-}) {
-  const [text, setText] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const parsed = parseTally(text);
-  const echo = parsed.ok && formatQuantity(parsed.value) !== text.trim() ? `= ${formatQuantity(parsed.value)}` : null;
-  const line = lineFor(session, item);
-
-  function commit() {
-    if (!parsed.ok) return setError(parsed.message);
-    setError(null);
-    setText('');
-    onAdd(parsed.value);
-  }
-
-  return (
-    <section data-testid="item-panel" className="mt-3 rounded-lg bg-white p-3 shadow-sm">
-      <div className="flex items-start justify-between">
-        <p className="font-semibold">
-          {item.name} <span className="font-normal text-slate-500">{item.variant}</span>
-          {item.duplicate !== null && <span className="ml-1 text-xs text-amber-700">#{item.duplicate}</span>}
-        </p>
-        <button onClick={onClose} aria-label="Close" className="px-2 text-slate-400">
-          ✕
-        </button>
-      </div>
-
-      <form
-        className="mt-2 flex items-center gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          commit();
-        }}
-      >
-        <input
-          aria-label="Count"
-          inputMode="decimal"
-          autoComplete="off"
-          autoFocus
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          className="w-32 rounded-lg border border-slate-300 p-2 text-lg tabular-nums"
-        />
-        <button type="submit" className="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white">
-          Add
-        </button>
-        {echo && <span className="text-sm text-slate-600">{echo}</span>}
-      </form>
-      {error && <p className="mt-1 text-sm text-rose-700">{error}</p>}
-
-      {line.counted && (
-        <p data-testid="line" className="mt-3 text-sm tabular-nums">
-          {item.expected === null ? 'Expected unreadable' : `Expected ${formatQuantity(item.expected)}`} · Count{' '}
-          {formatQuantity(line.count)}
-          {line.variance !== null && line.value !== null && (
-            <>
-              {' '}
-              · Variance {signed(line.variance)} · <b>{formatUsd(line.value)}</b>
-            </>
-          )}
-        </p>
-      )}
-    </section>
-  );
-}
-
-const signed = (thousandths: number) => (thousandths > 0 ? `+${formatQuantity(thousandths)}` : formatQuantity(thousandths));

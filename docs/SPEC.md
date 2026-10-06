@@ -79,18 +79,20 @@ Branches of a retailer on Zobaze POS need to compare physical stock with what Zo
 
 - **Before commit, Expected is hidden.** That covers search results, the input, and any placeholder.
 - A Tally is a number ≥ 0 with up to 3 decimal places. A single comma is accepted as the decimal point ("12,5"), and the parsed value is shown back ("= 12.5"). Anything else is rejected with a message, and nothing is saved.
-- **Committing** (Enter or the Add button) adds a Tally. Count = the sum of the Item's Tallies. A second entry for an Item adds a Tally; it never replaces the first.
-- Any Tally can be edited or removed. An Item whose last Tally is removed becomes **Uncounted**.
-- **After the first commit for an Item, its row shows:** Expected, Count (with parts "12 + 24 = 36"), Variance, and Variance Value.
+- **Another place** adds the typed Tally and keeps Expected hidden, showing the parts so far ("4 + …").
+- **Done** (the main button, also Enter) adds the typed Tally, if any, and finishes the Item. Count = the sum of the Item's Tallies. An entry never replaces an earlier Tally.
+- An Item with Tallies but no Done is **in progress**: marked so in search results, never shows Expected, and is flagged IN PROGRESS in the Session Report (ADR 0004).
+- **After Done, the row shows:** Expected, Count (with parts "4 + 6"), Variance, and Variance Value. Further Tallies are added with **Add**.
+- Any Tally can be edited or removed, before or after Done. An Item whose last Tally is removed becomes **Uncounted** and no longer Done.
 
 ### 4.6 Large Variance and Look Again
 
 - **Large** if |Variance Value| ≥ **$5**, or (|Variance| ≥ **2 units** and |Variance| × 100 ≥ **20** × |Expected|). With Expected 0, this means |Variance| ≥ 2. All comparisons use the integer values (§4.7).
 - Two named constants in one file: `LOOK_AGAIN` and `RECOUNT_LIST`, both `{ dollars: 5, units: 2, percent: 20 }` in v1. There is no settings screen.
-- **Look Again** is an inline note on the row, shown when a commit leaves the Item with a Large Variance. It's never a modal and costs zero extra taps.
+- **Look Again** is an inline note on the row, shown while a Done Item has a Large Variance. It's never a modal and costs zero extra taps.
   - Shortage: *"Check every place this item could be stored."*
   - Surplus: *"Possible delivery not booked in Zobaze."*
-- The first time Look Again fires for an Item, its Count at that moment is stored as **Count at Look Again**.
+- The first time Look Again fires for an Item, its Count at that moment is stored as **Count at Look Again**. Later edits or removals never overwrite or clear it.
 - Items with EXPECTED UNREADABLE are never Large.
 
 | Expected | Count | Cost | Variance | Value | Large? |
@@ -145,7 +147,7 @@ Branches of a retailer on Zobaze POS need to compare physical stock with what Zo
 **Variance Detail sheet:** one row per Item, with these columns:
 - Session start, Category, Item name, Variant, Duplicate #, SKU
 - Expected, Count, Variance, Cost, Variance Value
-- Status: MATCH / SHORT / OVER / NOT COUNTED / EXPECTED UNREADABLE
+- Status: MATCH / SHORT / OVER / IN PROGRESS / NOT COUNTED / EXPECTED UNREADABLE. IN PROGRESS rows show the Count but no Variance, and are excluded from totals and the Recount List.
 - Count at Look Again
 - Flags: Negative System Stock; Ended exactly at Expected (prompted Items only); No cost; Duplicate
 

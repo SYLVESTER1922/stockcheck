@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { addTally, lineFor, newSession } from '../src/domain/session';
 import type { Item } from '../src/domain/export';
+import { addTally, editTally, finishItem, lineFor, newSession, removeTally } from '../src/domain/session';
 
 const item = (over: Partial<Item> = {}): Item => ({
   key: 'name:sugar|2kg',
@@ -14,39 +14,107 @@ const item = (over: Partial<Item> = {}): Item => ({
   flags: [],
   ...over,
 });
+const AT = '2026-10-06T06:45:00.000Z';
+const start = (it = item()) => newSession('export.xlsx', '2026-10-06T06:30:00.000Z', [it]);
+const done = (thousandths: number, it = item()) => finishItem(addTally(start(it), it, thousandths, AT), it, AT);
 
 describe('Session', () => {
-  it('starts with no Tallies, so every Item is Uncounted', () => {
-    const session = newSession('export.xlsx', '2026-10-06T06:30:00.000Z', [item()]);
-    expect(lineFor(session, item())).toEqual({ counted: false });
+  it('starts with every Item Uncounted', () => {
+    expect(lineFor(start(), item())).toEqual({ status: 'uncounted' });
   });
 
-  it('derives Count, Variance and Variance Value from the Tallies', () => {
-    const session = addTally(newSession('export.xlsx', '2026-10-06T06:30:00.000Z', [item()]), item().key, 8_000);
-    expect(lineFor(session, item())).toEqual({ counted: true, tallies: [8_000], count: 8_000, variance: -2_000, value: -300 });
+  it('keeps an Item in progress, with Expected hidden, until Done', () => {
+    const session = addTally(start(), item(), 4_000, AT);
+    expect(lineFor(session, item())).toEqual({ status: 'in-progress', tallies: [4_000], count: 4_000 });
   });
 
-  it('adds a second entry as another Tally, never replacing the first', () => {
-    let session = newSession('export.xlsx', '2026-10-06T06:30:00.000Z', [item()]);
-    session = addTally(session, item().key, 4_000);
-    session = addTally(session, item().key, 6_000);
-    expect(lineFor(session, item())).toMatchObject({ tallies: [4_000, 6_000], count: 10_000, variance: 0, value: 0 });
+  it('reveals Variance and Variance Value once the Item is Done', () => {
+    expect(lineFor(done(9_000), item())).toEqual({
+      status: 'finished',
+      tallies: [9_000],
+      count: 9_000,
+      variance: -1_000,
+      value: -150,
+      lookAgain: null,
+      countAtLookAgain: null,
+    });
   });
 
-  it('treats a Count of 0 as counted, not Uncounted', () => {
-    const session = addTally(newSession('e.xlsx', '2026-10-06T06:30:00.000Z', [item()]), item().key, 0);
-    expect(lineFor(session, item())).toMatchObject({ counted: true, count: 0, variance: -10_000 });
+  it('adds every entry as another Tally, never replacing one', () => {
+    const session = finishItem(addTally(addTally(start(), item(), 4_000, AT), item(), 6_000, AT), item(), AT);
+    expect(lineFor(session, item())).toMatchObject({ tallies: [4_000, 6_000], count: 10_000, variance: 0 });
   });
 
-  it('has no Variance when Expected was unreadable', () => {
+  it('treats a Count of 0 as counted', () => {
+    expect(lineFor(done(0), item())).toMatchObject({ status: 'finished', count: 0, variance: -10_000 });
+  });
+
+  it('has no Variance and never Looks Again when Expected was unreadable', () => {
     const unreadable = item({ expected: null });
-    const session = addTally(newSession('e.xlsx', '2026-10-06T06:30:00.000Z', [unreadable]), unreadable.key, 5_000);
-    expect(lineFor(session, unreadable)).toEqual({ counted: true, tallies: [5_000], count: 5_000, variance: null, value: null });
+    expect(lineFor(done(50_000, unreadable), unreadable)).toMatchObject({ variance: null, value: null, lookAgain: null });
+  });
+
+  describe('Look Again', () => {
+    it('asks to check other places for a large shortage, recording the Count at that moment', () => {
+      expect(lineFor(done(4_000), item())).toMatchObject({ lookAgain: 'shortage', countAtLookAgain: 4_000 });
+    });
+
+    it('suggests an unbooked delivery for a large surplus', () => {
+      expect(lineFor(done(16_000), item())).toMatchObject({ lookAgain: 'surplus' });
+    });
+
+    it('does not fire before Done', () => {
+      expect(addTally(start(), item(), 1_000, AT).countAtLookAgain).toEqual({});
+    });
+
+    it('clears the note when looking again resolves it, keeping the Count at Look Again', () => {
+      const session = addTally(done(4_000), item(), 6_000, AT);
+      expect(lineFor(session, item())).toMatchObject({ count: 10_000, lookAgain: null, countAtLookAgain: 4_000 });
+    });
+
+    it('fires when an edit after Done makes the Variance large', () => {
+      const session = editTally(done(10_000), item(), 0, 5_000, AT);
+      expect(lineFor(session, item())).toMatchObject({ lookAgain: 'shortage', countAtLookAgain: 5_000 });
+    });
+
+    it('never overwrites the first Count at Look Again', () => {
+      const session = editTally(done(4_000), item(), 0, 3_000, AT);
+      expect(lineFor(session, item())).toMatchObject({ countAtLookAgain: 4_000 });
+    });
+  });
+
+  describe('editing and removing Tallies', () => {
+    it('edits one Tally in place', () => {
+      const session = editTally(addTally(addTally(start(), item(), 4_000, AT), item(), 6_000, AT), item(), 1, 5_000, AT);
+      expect(lineFor(session, item())).toMatchObject({ tallies: [4_000, 5_000], count: 9_000 });
+    });
+
+    it('removes one Tally', () => {
+      const session = removeTally(addTally(addTally(start(), item(), 4_000, AT), item(), 6_000, AT), item(), 0, AT);
+      expect(lineFor(session, item())).toMatchObject({ tallies: [6_000], count: 6_000 });
+    });
+
+    it('makes the Item Uncounted, and no longer Done, when its last Tally is removed', () => {
+      const session = removeTally(done(10_000), item(), 0, AT);
+      expect(lineFor(session, item())).toEqual({ status: 'uncounted' });
+      expect(session.finished).toEqual({});
+    });
+
+    it('keeps the Count at Look Again on record even after every Tally is removed (audit trail)', () => {
+      const session = removeTally(done(4_000), item(), 0, AT);
+      expect(session.countAtLookAgain).toEqual({ [item().key]: 4_000 });
+    });
+  });
+
+  it('records when the last Tally change happened', () => {
+    const later = '2026-10-06T07:10:00.000Z';
+    const session = addTally(addTally(start(), item(), 1_000, AT), item(), 1_000, later);
+    expect(session.lastChangeAt).toBe(later);
   });
 
   it('never changes the Session it was given', () => {
-    const before = newSession('e.xlsx', '2026-10-06T06:30:00.000Z', [item()]);
-    addTally(before, item().key, 1_000);
-    expect(before.tallies).toEqual({});
+    const before = start();
+    finishItem(addTally(before, item(), 1_000, AT), item(), AT);
+    expect(before).toEqual(start());
   });
 });
