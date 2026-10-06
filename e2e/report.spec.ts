@@ -15,7 +15,7 @@ test('count, then download the Session Report once branch and Counter are filled
     await page.getByRole('button', { name: 'Done' }).click();
   }
 
-  await page.getByRole('button', { name: 'Report' }).click();
+  await page.getByRole('button', { name: 'Report', exact: true }).click();
   await expect(page.getByTestId('net-value')).toHaveText('−$1.50');
 
   const download = page.getByRole('button', { name: 'Download report' });
@@ -36,13 +36,13 @@ test('count, then download the Session Report once branch and Counter are filled
 test('names typed before are suggested next time', async ({ page }) => {
   await page.goto('/');
   await page.getByLabel('Zobaze Export').setInputFiles('test/fixtures/tiny.xlsx');
-  await page.getByRole('button', { name: 'Report' }).click();
+  await page.getByRole('button', { name: 'Report', exact: true }).click();
   await page.getByLabel('Branch').fill('Main Street');
   await page.getByLabel('Counter').fill('Alex');
   await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download report' }).click()]);
 
   await page.reload();
-  await page.getByRole('button', { name: 'Report' }).click();
+  await page.getByRole('button', { name: 'Report', exact: true }).click();
   await expect(page.locator('datalist#branches option[value="Main Street"]')).toHaveCount(1);
   await expect(page.locator('datalist#counters option[value="Alex"]')).toHaveCount(1);
 });

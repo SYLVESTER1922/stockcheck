@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { formatQuantity, formatUsd } from '../domain/format';
 import { buildReport, reportFileName } from '../domain/report';
-import type { Session } from '../domain/session';
+import { hasCounts, isReported, type Session } from '../domain/session';
 import { download } from './download';
 import { loadNames, rememberNames } from './storage';
 
 const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
-export function ReportScreen({ session }: { session: Session }) {
+export function ReportScreen({ session, onReported }: { session: Session; onReported: () => void }) {
   const names = useMemo(loadNames, []);
   const [branch, setBranch] = useState(names.branches[0] ?? '');
   const [counter, setCounter] = useState(names.counters[0] ?? '');
@@ -20,6 +20,7 @@ export function ReportScreen({ session }: { session: Session }) {
     const { writeReport } = await import('../domain/workbook');
     download(reportFileName(branch.trim(), counter.trim(), now), writeReport(report), XLSX_TYPE);
     rememberNames(branch.trim(), counter.trim());
+    onReported();
   }
 
   return (
@@ -47,6 +48,15 @@ export function ReportScreen({ session }: { session: Session }) {
           </p>
         )}
         <p className="mt-2 text-xs text-slate-500">{preview.note}</p>
+        {hasCounts(session) && (
+          <p className={`mt-2 text-sm font-medium ${isReported(session) ? 'text-emerald-700' : 'text-amber-800'}`}>
+            {isReported(session)
+              ? 'Reported: the latest counts are in your downloaded report.'
+              : session.reportedChanges === null
+                ? 'Not reported yet.'
+                : 'Changed since the last report: download it again.'}
+          </p>
+        )}
       </div>
 
       <form

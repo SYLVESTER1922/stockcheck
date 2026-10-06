@@ -9,6 +9,10 @@ export type Session = {
   loadedAt: string;
   /** ISO time of the last Tally change: "counting finished". null until the first Tally. */
   lastChangeAt: string | null;
+  /** Bumped on every Tally change (add, edit, remove, Done). */
+  changes: number;
+  /** The `changes` value the last downloaded report covered; null if never reported. */
+  reportedChanges: number | null;
   items: Item[];
   /** Tallies in thousandths, by Item Key. An Item with no entry is Uncounted. */
   tallies: Record<string, number[]>;
@@ -38,6 +42,8 @@ export function newSession(exportFileName: string, loadedAt: string, items: Item
     exportFileName,
     loadedAt,
     lastChangeAt: null,
+    changes: 0,
+    reportedChanges: null,
     items,
     tallies: {},
     finished: {},
@@ -67,7 +73,8 @@ export function finishItem(session: Session, item: Item, at: string): Session {
     item.key in session.countAtDone
       ? session.countAtDone
       : { ...session.countAtDone, [item.key]: tallies.reduce((sum, t) => sum + t, 0) };
-  return recordLookAgain({ ...session, finished: { ...session.finished, [item.key]: true }, countAtDone, lastChangeAt: at }, item);
+  const next: Session = { ...session, finished: { ...session.finished, [item.key]: true as const }, countAtDone };
+  return recordLookAgain(touched(next, at), item);
 }
 
 /** Count, Variance and Variance Value are derived from the Tallies every time, never stored. */
@@ -93,9 +100,21 @@ function setTallies(session: Session, item: Item, tallies: number[], at: string)
   const { [item.key]: _wasFinished, ...otherFinished } = session.finished;
   const next =
     tallies.length > 0
-      ? { ...session, tallies: { ...session.tallies, [item.key]: tallies }, lastChangeAt: at }
-      : { ...session, tallies: otherTallies, finished: otherFinished, lastChangeAt: at };
-  return recordLookAgain(next, item);
+      ? { ...session, tallies: { ...session.tallies, [item.key]: tallies } }
+      : { ...session, tallies: otherTallies, finished: otherFinished };
+  return recordLookAgain(touched(next, at), item);
+}
+
+const touched = (session: Session, at: string): Session => ({ ...session, lastChangeAt: at, changes: session.changes + 1 });
+
+// Reload guard (spec §4.8, ADR 0003).
+export const hasCounts = (session: Session) => Object.keys(session.tallies).length > 0;
+export const isReported = (session: Session) => session.reportedChanges === session.changes;
+export const markReported = (session: Session): Session => ({ ...session, reportedChanges: session.changes });
+
+/** A new Export or a restore may replace this Session without losing unreported Counts. */
+export function canReplace(session: Session): boolean {
+  return !hasCounts(session) || isReported(session);
 }
 
 /** The first time a finished Item has a large Variance, keep its Count on record (ADR 0004). */
