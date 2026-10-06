@@ -183,6 +183,13 @@ Reachable from the start screen before any Export is loaded, and works offline. 
 
 - An installable PWA (manifest and icons) with a service worker that precaches the app. After one online visit it opens and works fully offline.
 - On first load, the app asks the browser for persistent storage (`navigator.storage.persist()`). If the browser refuses, it continues anyway.
+- **Updates (a new deploy while an old version is cached):**
+  - The browser checks for a new version every time the app is opened. The app also checks every hour while open and whenever it returns to the foreground, when online.
+  - A new version downloads in the background and then waits. A banner says *"A new version of StockCheck is ready. Your counts are kept."* with **Update now**. The app never reloads by itself, so a Counter is never interrupted mid-entry.
+  - Update now activates the new version and reloads once, including on a phone's first visit. Counts survive because the Session is saved on every change.
+  - The footer always shows the running version (commit and build date), so a stale phone is visible to anyone who looks.
+  - Offline, no check is possible: the phone keeps the version it has, and the banner appears the next time it's online.
+  - Rejected: automatic update and reload (`autoUpdate`). It would interrupt typing without warning. Also rejected: no update prompt at all, which could leave a Counter on a stale version without knowing.
 - The app makes no network requests after load: client data never leaves the phone except in files the Counter downloads.
 
 ## 5. Technical decisions

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "tsBuildInfoFile": "node_modules/.tmp/e2e.tsbuildinfo"
+  },
+  "include": ["e2e", "playwright.config.ts"]
+}

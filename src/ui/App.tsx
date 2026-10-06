@@ -6,6 +6,7 @@ import { ExportPicker } from './ExportPicker';
 import { HowToCount } from './HowToCount';
 import { ReplaceGuard } from './ReplaceGuard';
 import { ReportScreen } from './ReportScreen';
+import { UpdateBanner } from './UpdateBanner';
 import { loadSession, saveSession } from './storage';
 
 export type ImportInfo = { matched: Partial<Record<Field, string>> };
@@ -46,6 +47,8 @@ export function App() {
           </button>
         )}
       </header>
+
+      <UpdateBanner />
 
       {help && <HowToCount onBack={() => setHelp(false)} />}
       {!help && (
@@ -108,6 +111,7 @@ export function App() {
           )}
         </>
       )}
+      <footer className="mt-8 text-center text-xs text-slate-400">Version {__APP_VERSION__}</footer>
     </main>
   );
 }
