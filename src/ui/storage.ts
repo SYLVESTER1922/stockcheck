@@ -1,7 +1,9 @@
 import type { Session } from '../domain/session';
 
 // One JSON document in this origin's localStorage (ADR 0002). Bump the version if the shape changes.
-const KEY = 'stockcheck.session.v1';
+// Shared by every copy of the app on this device (installed app, browser tabs, windows).
+export const SESSION_KEY = 'stockcheck.session.v1';
+const KEY = SESSION_KEY;
 
 export function loadSession(): Session | null {
   try {
@@ -16,7 +18,10 @@ export function loadSession(): Session | null {
 
 export function saveSession(session: Session | null): void {
   try {
-    if (session) localStorage.setItem(KEY, JSON.stringify(session));
+    // Skip identical writes, so windows that just adopted each other's Session don't echo it back.
+    const json = session ? JSON.stringify(session) : null;
+    if (localStorage.getItem(KEY) === json) return;
+    if (json) localStorage.setItem(KEY, json);
     else localStorage.removeItem(KEY);
   } catch {
     // Storage full or blocked: the Session stays in memory. Backup (T11) is the safety net.

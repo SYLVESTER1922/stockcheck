@@ -20,4 +20,8 @@ Browser storage belongs to an **origin** (scheme + host + port), inside **one br
 - **Always open the same URL.** `https://x.github.io/stockcheck` and a custom domain, or `http` and `https`, are different origins with separate storage.
 - **Always open it the same way, ideally from the installed home-screen icon.** Opening the link inside WhatsApp's built-in browser, or in a different browser, uses different storage. On iPhones, a home-screen app's storage is separate from Safari's even for the same URL.
 - **Storage can be wiped without warning:** by "clear browsing data", by cleaner apps, or by the browser evicting data when a cheap phone runs low on space. Safari can also delete storage for sites not visited for 7 days. The app should ask the browser to mark its storage as persistent, but the browser can refuse.
+- **Several copies of the app on one device share one saved Session.** On Android and desktop, the installed app and browser tabs or windows use the same storage. Each copy keeps a Session in memory, so a copy opened earlier can be stale. Rules (added 2026-10-05, after a bug where a stale window loaded a new Export with no guard and wiped another window's unreported counts):
+  - Saved storage is the source of truth. Each copy adopts the saved Session whenever another copy changes it (the browser's `storage` event).
+  - Before anything replaces the Session (a new Export or a restore), the guard checks both this copy's Session and the saved one, and blocks if either has unreported counts.
+  - Identical saves are skipped, so copies don't echo each other's writes.
 - **If a sitting is interrupted, take a JSON backup before leaving it,** and send it off the phone if a different phone will finish the Session.

@@ -15,7 +15,7 @@ import { ReplaceGuard } from './ReplaceGuard';
 import { ReportScreen } from './ReportScreen';
 import { RestorePicker } from './RestorePicker';
 import { SuspendedPanel } from './SuspendedPanel';
-import { loadNames, loadSession, saveSession } from './storage';
+import { loadNames, loadSession, saveSession, SESSION_KEY } from './storage';
 import { UpdateBanner } from './UpdateBanner';
 
 export type ImportInfo = { matched: Partial<Record<Field, string>> };
@@ -36,6 +36,29 @@ export function App() {
 
   useEffect(() => saveSession(session), [session]);
 
+  // Another copy of the app on this device (installed app, tab, window) changed the saved Session:
+  // adopt it, so this window never acts on a stale copy.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => (e.key === SESSION_KEY || e.key === null) && setSession(loadSession());
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  /**
+   * The Session a replacement would destroy unreported counts in, checking both this window's copy
+   * and the saved one (another window may have counted, or this window's last save may have failed).
+   */
+  function blockingSession(): Session | null {
+    if (session && !canReplace(session)) return session;
+    const saved = loadSession();
+    return saved && !canReplace(saved) ? saved : null;
+  }
+
+  function showGuard(blocking: Session) {
+    setSession(blocking);
+    setReplacing('guard');
+  }
+
   // ADR 0006: check the Status File on open and whenever the app returns to the foreground.
   useEffect(() => {
     const check = () => void refreshAccess().then(setAccess);
@@ -46,6 +69,8 @@ export function App() {
   }, []);
 
   async function onFile(file: File) {
+    const blocking = blockingSession();
+    if (blocking) return showGuard(blocking);
     // Check again right before starting a new Session; a slow or failed check never blocks (ADR 0006).
     const latest = await refreshAccess();
     setAccess(latest);
@@ -65,9 +90,10 @@ export function App() {
     const result = parseBackup(await file.text());
     if (!result.ok) return setError(result.message);
     setError(null);
-    if (session && !canReplace(session)) {
+    const blocking = blockingSession();
+    if (blocking) {
       setPendingRestore(result.session);
-      setReplacing('guard');
+      showGuard(blocking);
       return;
     }
     replaceWith(result.session);
@@ -148,7 +174,11 @@ export function App() {
                 session={session}
                 importInfo={importInfo}
                 onChange={setSession}
-                onNewExport={() => setReplacing(canReplace(session) ? 'pick' : 'guard')}
+                onNewExport={() => {
+                  const blocking = blockingSession();
+                  if (blocking) showGuard(blocking);
+                  else setReplacing('pick');
+                }}
               />
             )}
           </>
