@@ -30,7 +30,7 @@ test('count, then download the Session Report once branch and Counter are filled
   const book = XLSX.read(readFileSync(await file.path()), { type: 'buffer' });
   expect(book.SheetNames).toEqual(['Summary', 'Variance Detail', 'Recount List']);
   const detail = XLSX.utils.sheet_to_json<Record<string, unknown>>(book.Sheets['Variance Detail']!);
-  expect(detail.map((r) => r.Status)).toEqual(['SHORT', 'MATCH', 'NOT COUNTED']);
+  expect(detail.map((r) => r.Status)).toEqual(['Short', 'Match', 'Not counted']);
 });
 
 test('names typed before are suggested next time', async ({ page }) => {

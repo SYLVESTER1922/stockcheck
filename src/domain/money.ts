@@ -5,3 +5,6 @@ export function varianceValue(varianceThousandths: number, costCents: number): n
   const cents = Math.floor(abs / 1000) + (abs % 1000 >= 500 ? 1 : 0);
   return (exact < 0 ? -cents : cents) + 0; // + 0 turns -0 into 0
 }
+
+/** A quantity (thousandths) valued at cost (cents), rounded like Variance Value. */
+export const valueAtCost = varianceValue;

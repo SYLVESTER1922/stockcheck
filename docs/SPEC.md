@@ -144,17 +144,13 @@ Branches of a retailer on Zobaze POS need to compare physical stock with what Zo
 - Every import warning count, and a line naming how many Items are In progress (Done not tapped)
 - The note: *"A shortage may be stock on the shelf under a different name or not set up in Zobaze. Check the Recount List and the paper list before treating it as a loss."*
 
-**Variance Detail sheet:** one row per Item, with these columns:
-- Session start, Category, Item name, Variant, Duplicate #, SKU
-- Expected, Count, Variance, Cost, Variance Value
-- Status: MATCH / SHORT / OVER / IN PROGRESS / NOT COUNTED / EXPECTED UNREADABLE. IN PROGRESS rows show the Count but no Variance, and are excluded from totals and the Recount List.
-- Count at Done (the total when Done was first tapped, before Expected was revealed; never overwritten)
-- Count at Look Again
-- Flags: Negative System Stock; Ended exactly at Expected (prompted Items only); No cost; Duplicate
+**Summary sheet additions (T15):** % of Items counted; Expected value at cost of the counted Items; net Variance as a % of that value; a Variance by Category table (Items counted, units, net $), worst first; Top 10 shortages and Top 10 overages by $ value. Bold section headings, currency formats, red negatives, set column widths.
 
-Rows are sorted by Variance Value ascending, with Uncounted Items last. Uncounted Items have blank Count, Variance and Value, and are never treated as 0.
+**Variance Detail sheet (T15):** one row per Item. Columns: Item, Variant, Category, Key, Expected, Count at Done, Final Count, Variance (units), Cost price, Variance ($), Status (Short / Over / Match / In progress / Not counted / Expected unreadable), Look Again prompted (Y/N), Count at Look Again, Ended exactly at Expected (Y), Flags (Duplicate Item, Negative System Stock, No cost), then Session start, Duplicate #, SKU. Sorted by absolute Variance ($), largest first; rows without a value (Expected unreadable, In progress, Not counted) last. In-progress and Uncounted Items have no Variance and are never treated as 0. Header row frozen and bold, autofilter on, units to 3 decimals, money to 2 as currency, negatives in red.
 
-**Recount List sheet:** the same columns, for Items with a Large Variance under `RECOUNT_LIST`.
+**Recount List sheet:** the same columns and formatting, for Items with a Large Variance under `RECOUNT_LIST`.
+
+Bold and frozen panes are added to the written file's XML after SheetJS writes it, because the free SheetJS edition doesn't write them.
 
 **Invariant:** the sum of the Variance Value column equals the net Variance Value on the Summary, to the cent.
 

@@ -89,13 +89,13 @@ describe('buildReport: Variance Detail', () => {
     expect(row('Progress').flags).toEqual(['In progress: Done not tapped']);
   });
 
-  it('sorts by Variance Value, biggest loss first, with in-progress and Uncounted Items last', () => {
+  it('sorts by absolute Variance Value, largest first, with in-progress and Uncounted Items last (T15)', () => {
     expect(buildReport(countedSession(), META).detail.map((r) => r.name)).toEqual([
       'Big',
+      'Over',
       'Short',
       'Match',
       'Resolved',
-      'Over',
       'Unreadable',
       'Progress',
       'Uncounted',
@@ -161,3 +161,58 @@ describe('reportFileName', () => {
     );
   });
 });
+
+describe('buildReport: T15 detail fields', () => {
+  it('carries the Item Key, whether Look Again was prompted, and whether it ended exactly at Expected', () => {
+    expect(row('Big')).toMatchObject({ key: 'Big', lookAgainPrompted: true, endedAtExpected: false });
+    expect(row('Resolved')).toMatchObject({ lookAgainPrompted: true, endedAtExpected: true });
+    expect(row('Short')).toMatchObject({ lookAgainPrompted: false, endedAtExpected: false });
+  });
+});
+
+describe('buildReport: T15 Summary figures', () => {
+  const summary = buildReport(countedSession(), META).summary;
+
+  it('gives the share of Items counted', () => {
+    expect(summary.percentCounted).toBeCloseTo(6 / 8);
+  });
+
+  it('values the Expected stock of counted Items at cost, and net Variance as a share of it', () => {
+    // Short 10×$1.50 + Over 5×$2 + Match 3×$1 + Big 10×$1.50 + Resolved 10×$1.50; Unreadable has no Expected.
+    expect(summary.expectedValueCounted).toBe(5_800);
+    expect(summary.netPercentOfExpected).toBeCloseTo(-850 / 5_800);
+  });
+
+  it('has no percentage when the counted Expected value is zero', () => {
+    const empty = buildReport(newSession('e.xlsx', AT, [ITEMS.short]), META).summary;
+    expect(empty.netPercentOfExpected).toBeNull();
+  });
+
+  it('lists the top shortages and overages by $ value', () => {
+    expect(summary.topShortages.map((r) => r.name)).toEqual(['Big', 'Short']);
+    expect(summary.topOverages.map((r) => r.name)).toEqual(['Over']);
+  });
+
+  it('caps each top list at 10', () => {
+    const many = Array.from({ length: 12 }, (_, i) => item(`S${i}`, 10_000, 100 + i));
+    let s = newSession('e.xlsx', AT, many);
+    for (const it of many) s = finishItem(addTally(s, it, 5_000, AT), it, AT);
+    const top = buildReport(s, META).summary.topShortages;
+    expect(top).toHaveLength(10);
+    expect(top[0]!.name).toBe('S11'); // highest cost, so the biggest $ shortage
+  });
+
+  it('totals Variance by Category over counted Items, worst first', () => {
+    const a = item('A', 10_000, 100, { category: 'Drinks' });
+    const b = item('B', 10_000, 100, { category: 'Grocery' });
+    const c = item('C', 10_000, 100, { category: 'Grocery' });
+    const d = item('D', 10_000, 100, { category: '' });
+    let s = newSession('e.xlsx', AT, [a, b, c, d]);
+    for (const [it, n] of [[a, 12_000], [b, 7_000], [c, 9_000]] as const) s = finishItem(addTally(s, it, n, AT), it, AT);
+    expect(buildReport(s, META).summary.byCategory).toEqual([
+      { category: 'Grocery', counted: 2, units: -4_000, value: -400 },
+      { category: 'Drinks', counted: 1, units: 2_000, value: 200 },
+    ]);
+  });
+});
+

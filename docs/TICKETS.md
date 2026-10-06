@@ -167,3 +167,13 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 - [ ] Never cached: offline, `status.json` is not served from the service worker cache.
 - [ ] Every existing unit and end-to-end test passes unchanged.
 - [ ] Measured: time from a status push to the live file changing (recorded in the ticket notes).
+
+## T15: Report detail and formatting ⚪
+**Depends on:** T13. Excel report only; no change to counting. *(Added 2026-10-05.)*
+
+**Acceptance**
+- [ ] Summary: % of Items counted; Expected value at cost of counted Items; net Variance as % of that value; Variance by Category (Items counted, units, net $); Top 10 shortages and overages by $. Bold headings, currency formats, red negatives, column widths.
+- [ ] Variance Detail: the target columns in order (Item … Flags), Status in words, Look Again prompted Y/N, Ended exactly at Expected as its own column; Session start, Duplicate # and SKU kept at the end (Session start is needed by the latest-count-wins rule). Sorted by absolute $, largest first. Frozen bold header, autofilter, units 3 dp, money 2 dp.
+- [ ] Recount List: same columns and formatting, including Count at Done.
+- [ ] Bold and frozen panes added by post-processing the file with SheetJS's bundled zip tools (no new dependency).
+- [ ] Only report-content tests change; all other tests pass unchanged.
