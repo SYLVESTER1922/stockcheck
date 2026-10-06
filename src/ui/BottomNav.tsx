@@ -1,4 +1,4 @@
-export type Tab = 'count' | 'variance' | 'report' | 'help';
+export type Tab = 'home' | 'count' | 'variance' | 'report' | 'help';
 
 type Props = { tab: Tab; hasSession: boolean; uncounted: number; onTab: (tab: Tab) => void };
 

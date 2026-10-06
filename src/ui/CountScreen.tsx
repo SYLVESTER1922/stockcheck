@@ -78,7 +78,7 @@ export function CountScreen({ session, importInfo, onChange, onNewExport }: Prop
         placeholder="Find an item, e.g. sugar 2kg"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="sticky top-[59px] z-20 mt-4 h-14 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-lg shadow-sm outline-none focus:border-brand-blue"
+        className="sticky top-[63px] z-20 mt-4 h-14 w-full rounded-2xl border-2 border-slate-300 bg-white px-4 text-lg shadow-sm outline-none focus:border-brand-blue"
       />
 
       {selected && (

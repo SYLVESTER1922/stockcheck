@@ -9,11 +9,10 @@ import { loadAccess, refreshAccess } from './accessCheck';
 import { BottomNav, type Tab } from './BottomNav';
 import { CountScreen } from './CountScreen';
 import { ExportPicker } from './ExportPicker';
+import { HomeScreen } from './HomeScreen';
 import { HowToCount } from './HowToCount';
-import { PoweredBy } from './PoweredBy';
 import { ReplaceGuard } from './ReplaceGuard';
 import { ReportScreen } from './ReportScreen';
-import { RestorePicker } from './RestorePicker';
 import { SuspendedPanel } from './SuspendedPanel';
 import { loadNames, loadSession, saveSession, SESSION_KEY } from './storage';
 import { UpdateBanner } from './UpdateBanner';
@@ -106,6 +105,38 @@ export function App() {
     replaceWith(result.session);
   }
 
+  const summary = useMemo(
+    () => session && buildReport(session, { branch: '', counter: '', generatedAt: '' }).summary,
+    [session],
+  );
+
+  /** Home shows when chosen, or whenever there is no Session (T18). The guard always takes priority. */
+  const isHome = replacing !== 'guard' && (tab === 'home' || (!session && tab !== 'help'));
+
+  // Android back (browser history): leaving Home adds one history entry, so "back" returns Home.
+  useEffect(() => {
+    if (!isHome && history.state?.stockcheck !== 'inner') history.pushState({ stockcheck: 'inner' }, '');
+  }, [isHome]);
+  useEffect(() => {
+    const onPop = () => {
+      setTab('home');
+      setReplacing('no');
+      setPendingRestore(null);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  /** Goes Home without touching the Session: only what is on screen changes. */
+  function goHome() {
+    if (history.state?.stockcheck === 'inner') history.back(); // popstate → Home, keeping history clean
+    else {
+      setTab('home');
+      setReplacing('no');
+      setPendingRestore(null);
+    }
+  }
+
   function replaceWith(next: Session | null) {
     setSession(next);
     setPendingRestore(null);
@@ -114,11 +145,11 @@ export function App() {
     setTab('count');
   }
 
-  const showPicker = !session || replacing === 'pick';
+  const showPicker = !!session && replacing === 'pick';
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 text-slate-900">
-      <Header session={session} />
+      <Header summary={summary} onHome={isHome ? null : goHome} />
 
       <main className="mx-auto max-w-xl px-4">
         <UpdateBanner />
@@ -132,20 +163,26 @@ export function App() {
         {tab === 'help' && <HowToCount onBack={() => setTab('count')} />}
         {tab !== 'help' && (
           <>
-            {showPicker && (
-              <section className="mt-4 space-y-1 rounded-2xl bg-white p-4 shadow-sm">
-                <h2 className="text-base font-semibold">{session ? 'Load a new Export' : 'Start a count'}</h2>
-                {suspended && access ? <SuspendedPanel message={access.message} /> : <ExportPicker onFile={onFile} />}
-                {!session && <RestorePicker onFile={onRestore} />}
-                {session && (
-                  <button onClick={() => setReplacing('no')} className="mt-2 h-11 text-sm font-medium text-slate-600 underline">
-                    Cancel
-                  </button>
-                )}
-              </section>
+            {isHome && (
+              <HomeScreen
+                progress={summary ? { finished: summary.finished, items: summary.items } : null}
+                suspension={suspended && access ? access.message : null}
+                onExport={onFile}
+                onRestore={onRestore}
+                onContinue={() => setTab('count')}
+                onHowTo={() => setTab('help')}
+              />
             )}
 
-            {!session && <PoweredBy />}
+            {!isHome && showPicker && (
+              <section className="mt-4 space-y-1 rounded-2xl bg-white p-4 shadow-sm">
+                <h2 className="text-base font-semibold">Load a new Export</h2>
+                {suspended && access ? <SuspendedPanel message={access.message} /> : <ExportPicker onFile={onFile} />}
+                <button onClick={() => setReplacing('no')} className="mt-2 h-11 text-sm font-medium text-slate-600 underline">
+                  Cancel
+                </button>
+              </section>
+            )}
 
             {error && (
               <p role="alert" className="mt-4 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800">
@@ -169,15 +206,15 @@ export function App() {
               />
             )}
 
-            {session && replacing === 'no' && tab === 'variance' && <VarianceScreen session={session} />}
-            {session && replacing === 'no' && tab === 'report' && (
+            {!isHome && session && replacing === 'no' && tab === 'variance' && <VarianceScreen session={session} />}
+            {!isHome && session && replacing === 'no' && tab === 'report' && (
               <ReportScreen
                 session={session}
                 onReported={() => setSession((s) => s && markReported(s))}
                 onRestore={onRestore}
               />
             )}
-            {session && replacing === 'no' && tab === 'count' && (
+            {!isHome && session && replacing === 'no' && tab === 'count' && (
               <CountScreen
                 session={session}
                 importInfo={importInfo}
@@ -195,42 +232,52 @@ export function App() {
         <footer className="mt-8 text-center text-xs text-slate-500">Version {__APP_VERSION__}</footer>
       </main>
 
-      <BottomNav
+      {!isHome && (
+        <BottomNav
         tab={tab}
         hasSession={!!session && replacing === 'no'}
         uncounted={session ? session.items.length - Object.keys(session.tallies).length : 0}
         onTab={setTab}
-      />
+        />
+      )}
     </div>
   );
 }
 
-/** Sticky header: app name and branch on the left; net Variance Value and progress on the right. */
-function Header({ session }: { session: Session | null }) {
+type Summary = ReturnType<typeof buildReport>['summary'];
+
+/**
+ * Sticky header: a Home arrow on every screen except Home (T18), app name and branch, and the net
+ * Variance Value and progress when there is a Session.
+ */
+function Header({ summary, onHome }: { summary: Summary | null; onHome: (() => void) | null }) {
   const branch = useMemo(() => loadNames().branches[0], []);
-  const summary = useMemo(
-    () => session && buildReport(session, { branch: '', counter: '', generatedAt: '' }).summary,
-    [session],
-  );
   const progress = summary && summary.items > 0 ? Math.round((summary.finished / summary.items) * 100) : 0;
 
   return (
     <header className="sticky top-0 z-30 border-b-[3px] border-brand-orange bg-white">
-      <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-2">
-        <div className="flex items-center gap-2">
-          <div
-            aria-hidden
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-navy text-sm font-bold text-white"
-          >
-            ✓
-          </div>
-          <div className="leading-tight">
+      <div className="mx-auto flex max-w-xl items-center justify-between gap-2 px-4 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          {onHome ? (
+            <button
+              onClick={onHome}
+              aria-label="Home"
+              className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl text-brand-navy active:bg-slate-100"
+            >
+              <span aria-hidden>←</span>
+            </button>
+          ) : (
+            <div aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-navy text-sm font-bold text-white">
+              ✓
+            </div>
+          )}
+          <div className="min-w-0 leading-tight">
             <h1 className="text-sm font-bold text-brand-navy">StockCheck</h1>
-            <p className="text-xs text-slate-500">{branch || 'No branch set'}</p>
+            <p className="truncate text-xs text-slate-500">{branch || 'No branch set'}</p>
           </div>
         </div>
         {summary && (
-          <div className="text-right leading-tight">
+          <div className="shrink-0 text-right leading-tight">
             <p
               className={`whitespace-nowrap text-sm font-bold tabular-nums ${summary.netValue < 0 ? 'text-rose-700' : summary.netValue > 0 ? 'text-emerald-700' : 'text-slate-600'}`}
             >

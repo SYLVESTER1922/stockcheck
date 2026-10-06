@@ -191,3 +191,14 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 - [ ] The shortage note is kept.
 - [ ] Every figure comes from buildReport; a test proves the screen totals equal the Excel Summary to the cent.
 - [ ] All existing tests pass unchanged, including the 320 px layout test; the Variance tab has its own 320 px check.
+
+## T18: Home screen ⚪
+**Depends on:** T17. *(Added 2026-10-06.)* No behaviour change to counting, guards, backup, restore or the Access Switch.
+
+**Acceptance**
+- [ ] Home: brand line and headline "Count your stock. Find the gaps."; a 3-step strip; one primary button ("Start a count" with no Session, "Continue count" with "X of N counted" with one; X = Items Done); Restore a backup and How to count as secondary actions; "Works offline" and "Your counts stay on this phone" chips; the suspension message instead of Start a count when the Access Switch is on; the Netrisyl footer and version.
+- [ ] Styled file buttons replace the native controls everywhere and show the chosen file name. Each keeps an accessible name containing its visible text.
+- [ ] A Home arrow (accessible name "Home", 44 px) in the header on every screen except Home; going Home never changes or discards the Session; Load a new Export keeps its guard.
+- [ ] The browser/Android back button returns to Home, including after reopening the app mid-count.
+- [ ] Reopening the app mid-count still opens on Count. Home is shown whenever there is no Session.
+- [ ] Tests: Home reachable from every screen, Continue counts, back button, 320 px layout. Existing tests unchanged.
