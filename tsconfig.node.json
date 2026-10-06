@@ -7,5 +7,5 @@
     "allowImportingTsExtensions": true,
     "tsBuildInfoFile": "node_modules/.tmp/node.tsbuildinfo"
   },
-  "include": ["src/domain", "test", "scripts", "vite.config.ts", "vitest.local.config.ts"]
+  "include": ["src/domain", "test", "scripts", "vite.config.ts", "vitest.local.config.ts", "app-version.ts"]
 }

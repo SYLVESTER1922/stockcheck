@@ -4,16 +4,13 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { execSync } from 'node:child_process';
 import { VitePWA } from 'vite-plugin-pwa';
+import { versionFromLog } from './app-version';
 
-/**
- * Shown in the app footer. Taken from the last commit that changed app code, ignoring
- * public/status.json, so flipping the Access Switch rebuilds identical files and phones
- * don't see a "new version" banner (ADR 0006).
- */
+/** Shown in the app footer; see app-version.ts for which commits count (ADR 0006). */
 function appVersion(): string {
   if (process.env.STOCKCHECK_VERSION) return process.env.STOCKCHECK_VERSION;
   try {
-    return execSync(`git log -1 --format="%h · %cs" -- . ":(exclude)public/status.json"`, { encoding: 'utf8' }).trim() || 'dev';
+    return versionFromLog(execSync('git log --format="@@%h %cs" --name-only', { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }));
   } catch {
     return 'dev';
   }
