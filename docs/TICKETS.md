@@ -6,9 +6,9 @@ Each ticket is a thin vertical slice: demoable on its own, built test-first, one
 - 🟢 **Deployable** after T1.
 - 🟡 **Usable count-and-report flow** after T6.
 - 🔵 **Pilot** (first real client use) = T1–T10. This includes the offline PWA and the real-file check.
-- ⚪ **v1 complete** = T1–T11.
+- ⚪ **v1 complete** = T1–T12.
 
-**Proposed batches:** [T1, T2] · [T3, T4] · [T5, T6] · [T7, T8, T9] · [T10, T11]
+**Proposed batches:** [T1, T2] · [T3, T4] · [T5, T6] · [T7, T8, T9] · [T10, T11] · [T12]
 
 ---
 
@@ -109,3 +109,15 @@ Search, pick an Item, type a Tally, commit, and see Expected, Count, Variance an
 - [ ] Unit tests: round trip (backup → restore → identical Session); wrong `app` or `format`, or bad JSON, is refused; restore follows the reload guard.
 - [ ] A size test: a synthetic 1,000-Item Session with a Tally on every Item; the size is recorded in LEARNING.md.
 - [ ] The privacy warning is shown next to the Backup button.
+
+## T12: Visual pass ⚪
+**Depends on:** T11. No new features: layout, legibility and touch only. *(Added 2026-10-05; content proposed, to be confirmed.)*
+
+**Acceptance**
+- [ ] Every screen (start, Count, item panel, Report, guard, How to count, update banner) reviewed on a 360×640 phone viewport and at 320 px wide. Screenshots shared for review.
+- [ ] No horizontal scrolling on any screen at 320 px (automated Playwright check).
+- [ ] Buttons and other tap targets are at least 44×44 px (automated Playwright check on the main screens).
+- [ ] Inputs use at least 16 px text, so phones don't zoom in when typing.
+- [ ] Text and notes (Look Again, warnings, guard) meet WCAG AA contrast, so they stay readable in a bright storeroom.
+- [ ] Headings, spacing and button styles are consistent across screens.
+
