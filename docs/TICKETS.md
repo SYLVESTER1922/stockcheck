@@ -120,4 +120,8 @@ Search, pick an Item, type a Tally, commit, and see Expected, Count, Variance an
 - [ ] Inputs use at least 16 px text, so phones don't zoom in when typing.
 - [ ] Text and notes (Look Again, warnings, guard) meet WCAG AA contrast, so they stay readable in a bright storeroom.
 - [ ] Headings, spacing and button styles are consistent across screens.
+- [ ] Done is visually primary and clearly different from Another place.
+- [ ] The search box and the number input are large and quick to use one-handed.
+- [ ] The overall look follows the v1 prototype: a header with branch and progress, bottom navigation, cards and its colours.
+- [ ] No behaviour changes: every existing unit and end-to-end test passes unchanged.
 

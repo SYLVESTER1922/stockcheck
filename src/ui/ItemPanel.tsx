@@ -45,9 +45,9 @@ export function ItemPanel({ item, session, onChange, onClose }: Props) {
   }
 
   return (
-    <section data-testid="item-panel" className="mt-3 rounded-lg bg-white p-3 shadow-sm">
+    <section data-testid="item-panel" className="mt-3 rounded-2xl border-2 border-indigo-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between">
-        <p className="font-semibold">
+        <p className="text-lg font-semibold">
           {item.name} <span className="font-normal text-slate-500">{item.variant}</span>
           {item.duplicate !== null && (
             <span className="ml-1 text-xs text-amber-700">
@@ -55,13 +55,13 @@ export function ItemPanel({ item, session, onChange, onClose }: Props) {
             </span>
           )}
         </p>
-        <button onClick={onClose} aria-label="Close" className="px-2 text-slate-400">
+        <button onClick={onClose} aria-label="Close" className="-mt-2 -mr-2 h-11 w-11 shrink-0 text-xl text-slate-500">
           ✕
         </button>
       </div>
 
       {tallies.length > 0 && (
-        <ul className="mt-2 flex flex-wrap items-center gap-1 text-sm tabular-nums">
+        <ul className="mt-2 flex flex-wrap items-center gap-2 text-base tabular-nums">
           {tallies.map((t, i) =>
             editing === i ? (
               <TallyEditor
@@ -74,14 +74,14 @@ export function ItemPanel({ item, session, onChange, onClose }: Props) {
                 onCancel={() => setEditing(null)}
               />
             ) : (
-              <li key={i} className="flex items-center rounded bg-slate-100">
-                <button aria-label={`Edit ${formatQuantity(t)}`} onClick={() => setEditing(i)} className="px-2 py-1">
+              <li key={i} className="flex items-center rounded-xl bg-slate-100">
+                <button aria-label={`Edit ${formatQuantity(t)}`} onClick={() => setEditing(i)} className="h-11 min-w-11 px-3 font-semibold">
                   {formatQuantity(t)}
                 </button>
                 <button
                   aria-label={`Remove ${formatQuantity(t)}`}
                   onClick={() => onChange(removeTally(session, item, i, now()))}
-                  className="px-1 text-slate-400"
+                  className="h-11 w-11 text-slate-500"
                 >
                   ✕
                 </button>
@@ -92,8 +92,38 @@ export function ItemPanel({ item, session, onChange, onClose }: Props) {
         </ul>
       )}
 
+      {line.status === 'finished' && (
+        <>
+          <div data-testid="line" className="mt-3 grid grid-cols-2 gap-2 text-sm tabular-nums">
+            <p className="rounded-xl bg-slate-50 p-2">
+              {item.expected === null ? 'Expected unreadable' : `Expected ${formatQuantity(item.expected)}`}
+            </p>
+            <p className="rounded-xl bg-slate-50 p-2">
+              Count {formatQuantity(line.count)}
+              {line.tallies.length > 1 && ` (${line.tallies.map(formatQuantity).join(' + ')})`}
+            </p>
+            {line.variance !== null && line.value !== null && (
+              <>
+                <p className="rounded-xl bg-slate-50 p-2">Variance {signed(line.variance)} </p>
+                <p
+                  className={`whitespace-nowrap rounded-xl p-2 text-base font-bold ${
+                    line.value < 0 ? 'bg-rose-50 text-rose-800' : line.value > 0 ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-50'
+                  }`}
+                >
+                  {formatUsd(line.value)}
+                </p>
+              </>
+            )}
+          </div>
+          {line.lookAgain && (
+            <p className="mt-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <b>Look again:</b> {LOOK_AGAIN_TEXT[line.lookAgain]}
+            </p>
+          )}
+        </>
+      )}
       <form
-        className="mt-2 flex flex-wrap items-center gap-2"
+        className="mt-3 space-y-2"
         onSubmit={(e) => {
           e.preventDefault();
           if (line.status === 'finished') {
@@ -109,46 +139,34 @@ export function ItemPanel({ item, session, onChange, onClose }: Props) {
           autoFocus
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="w-28 rounded-lg border border-slate-300 p-2 text-lg tabular-nums"
+          placeholder="0"
+          className="h-16 w-full rounded-2xl border-2 border-slate-300 px-4 text-center text-3xl font-semibold tabular-nums outline-none placeholder:text-slate-300 focus:border-indigo-500"
         />
+        {echo && <p className="text-center text-sm text-slate-600">{echo}</p>}
         {line.status === 'finished' ? (
-          <button type="submit" className="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white">
+          <button type="submit" className="h-14 w-full rounded-2xl bg-indigo-600 text-lg font-bold text-white shadow-sm active:bg-indigo-700">
             Add
           </button>
         ) : (
-          <>
-            <button type="submit" className="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white">
-              Done
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={another}
+              className="h-14 w-2/5 rounded-2xl border-2 border-slate-300 bg-white text-sm font-semibold text-slate-700"
+            >
+              <span aria-hidden>+ </span>Another place
             </button>
-            <button type="button" onClick={another} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-              Another place
+            <button
+              type="submit"
+              className="h-14 flex-1 rounded-2xl bg-indigo-600 text-lg font-bold text-white shadow-sm active:bg-indigo-700"
+            >
+              Done <span aria-hidden>✓</span>
             </button>
-          </>
+          </div>
         )}
-        {echo && <span className="text-sm text-slate-600">{echo}</span>}
       </form>
       {error && <p className="mt-1 text-sm text-rose-700">{error}</p>}
 
-      {line.status === 'finished' && (
-        <>
-          <p data-testid="line" className="mt-3 text-sm tabular-nums">
-            {item.expected === null ? 'Expected unreadable' : `Expected ${formatQuantity(item.expected)}`} · Count{' '}
-            {formatQuantity(line.count)}
-            {line.tallies.length > 1 && ` (${line.tallies.map(formatQuantity).join(' + ')})`}
-            {line.variance !== null && line.value !== null && (
-              <>
-                {' '}
-                · Variance {signed(line.variance)} · <b>{formatUsd(line.value)}</b>
-              </>
-            )}
-          </p>
-          {line.lookAgain && (
-            <p className="mt-2 rounded bg-amber-50 p-2 text-sm text-amber-900">
-              Look again: {LOOK_AGAIN_TEXT[line.lookAgain]}
-            </p>
-          )}
-        </>
-      )}
     </section>
   );
 }
@@ -171,12 +189,12 @@ function TallyEditor({ initial, onSave, onCancel }: { initial: string; onSave: (
           autoFocus
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="w-20 rounded border border-slate-300 px-1"
+          className="h-11 w-20 rounded-xl border-2 border-slate-300 px-2 text-base"
         />
-        <button type="submit" disabled={!parsed.ok} className="px-1 text-emerald-700">
+        <button type="submit" disabled={!parsed.ok} className="h-11 px-2 font-semibold text-emerald-700">
           Save
         </button>
-        <button type="button" onClick={onCancel} className="px-1 text-slate-400">
+        <button type="button" onClick={onCancel} className="h-11 px-2 text-slate-500">
           Cancel
         </button>
       </form>

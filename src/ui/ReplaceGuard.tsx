@@ -13,15 +13,15 @@ export function ReplaceGuard({ countedItems, onReportFirst, onDiscard, onKeepCou
   const items = countedItems === 1 ? '1 counted item' : `${countedItems} counted items`;
 
   return (
-    <section role="alert" className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+    <section role="alert" className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
       {confirming ? (
         <>
           <p className="font-semibold">Discard {items}? This cannot be undone.</p>
           <div className="mt-2 flex gap-2">
-            <button onClick={onDiscard} className="rounded-lg bg-rose-700 px-3 py-2 font-semibold text-white">
+            <button onClick={onDiscard} className="h-12 rounded-2xl bg-rose-700 px-4 font-semibold text-white">
               Yes, discard
             </button>
-            <button onClick={onKeepCounting} className="rounded-lg border border-amber-300 px-3 py-2">
+            <button onClick={onKeepCounting} className="h-12 rounded-2xl border-2 border-amber-300 bg-white px-4 font-medium">
               Keep counting
             </button>
           </div>
@@ -31,13 +31,13 @@ export function ReplaceGuard({ countedItems, onReportFirst, onDiscard, onKeepCou
           <p className="font-semibold">This Session has counts that aren't in a downloaded report.</p>
           <p className="mt-1">Loading a new Export or restoring a backup clears them. Download the report first, or discard them.</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <button onClick={onReportFirst} className="rounded-lg bg-slate-900 px-3 py-2 font-semibold text-white">
+            <button onClick={onReportFirst} className="h-12 rounded-2xl bg-indigo-600 px-4 font-semibold text-white">
               Download the report first
             </button>
-            <button onClick={() => setConfirming(true)} className="rounded-lg border border-amber-300 px-3 py-2">
+            <button onClick={() => setConfirming(true)} className="h-12 rounded-2xl border-2 border-amber-300 bg-white px-4 font-medium">
               Discard this Session
             </button>
-            <button onClick={onKeepCounting} className="rounded-lg px-3 py-2 underline">
+            <button onClick={onKeepCounting} className="h-12 px-3 font-medium underline">
               Keep counting
             </button>
           </div>
