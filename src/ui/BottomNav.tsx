@@ -1,15 +1,16 @@
-export type Tab = 'count' | 'report' | 'help';
+export type Tab = 'count' | 'variance' | 'report' | 'help';
 
 type Props = { tab: Tab; hasSession: boolean; uncounted: number; onTab: (tab: Tab) => void };
 
 /**
  * Bottom navigation, within thumb reach. Icons and the badge are aria-hidden so each button's
- * accessible name is exactly its label ("Count", "Report", "How to count").
+ * accessible name is exactly its label ("Count", "Variance", "Report", "How to count").
  */
 export function BottomNav({ tab, hasSession, uncounted, onTab }: Props) {
   const tabs: { id: Tab; label: string; icon: string; show: boolean }[] = [
     { id: 'count', label: 'Count', icon: '🔢', show: hasSession },
-    { id: 'report', label: 'Report', icon: '📊', show: hasSession },
+    { id: 'variance', label: 'Variance', icon: '📊', show: hasSession },
+    { id: 'report', label: 'Report', icon: '🧾', show: hasSession },
     { id: 'help', label: 'How to count', icon: '❓', show: true },
   ];
 

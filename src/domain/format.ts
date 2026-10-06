@@ -14,3 +14,8 @@ export function formatUsd(cents: number): string {
   const text = `$${group(Math.floor(abs / 100))}.${String(abs % 100).padStart(2, '0')}`;
   return cents < 0 ? MINUS + text : text;
 }
+
+/** With an explicit "+" for positive values (T17: signs as well as colour). */
+export const signedUsd = (cents: number) => (cents > 0 ? `+${formatUsd(cents)}` : formatUsd(cents));
+export const signedQuantity = (thousandths: number) =>
+  thousandths > 0 ? `+${formatQuantity(thousandths)}` : formatQuantity(thousandths);

@@ -177,3 +177,17 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 - [ ] Recount List: same columns and formatting, including Count at Done.
 - [ ] Bold and frozen panes added by post-processing the file with SheetJS's bundled zip tools (no new dependency).
 - [ ] Only report-content tests change; all other tests pass unchanged.
+
+## T17: Variance tab ⚪
+**Depends on:** T15. *(Added 2026-10-05. There is no T16.)* Layout follows the v1 prototype's Variance screen, phone-first, T13 palette.
+
+**Acceptance**
+- [ ] A Variance tab in the bottom navigation (Count · Variance · Report · How to count).
+- [ ] Hero card: "Net variance value (at cost)", the short and over split, and the Expected value of the counted Items (not the whole Export). No "estimated shrinkage" wording, no "line accuracy" headline.
+- [ ] Four tiles (Lines short, Lines over, Exact match, Not counted), 2×2 at 360 px.
+- [ ] In-progress Items appear only as "N in progress (Done not tapped)" and never reveal Expected; only Done Items count.
+- [ ] Biggest gaps (top 20) with a by value / by units toggle, bars scaled to the largest gap, each row showing expected, counted and cost; tapping a row shows Count at Done and Count at Look Again.
+- [ ] Signs as well as colour on every value; over uses the "over" green, not the warning amber; all text pairs WCAG AA.
+- [ ] The shortage note is kept.
+- [ ] Every figure comes from buildReport; a test proves the screen totals equal the Excel Summary to the cent.
+- [ ] All existing tests pass unchanged, including the 320 px layout test; the Variance tab has its own 320 px check.

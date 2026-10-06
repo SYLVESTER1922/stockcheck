@@ -17,6 +17,7 @@ import { RestorePicker } from './RestorePicker';
 import { SuspendedPanel } from './SuspendedPanel';
 import { loadNames, loadSession, saveSession, SESSION_KEY } from './storage';
 import { UpdateBanner } from './UpdateBanner';
+import { VarianceScreen } from './VarianceScreen';
 
 export type ImportInfo = { matched: Partial<Record<Field, string>> };
 /** Replacing the Session: nothing, the guard (unreported Counts), or the file picker. */
@@ -35,6 +36,12 @@ export function App() {
   const suspended = isSuspended(access);
 
   useEffect(() => saveSession(session), [session]);
+
+  // Each tab opens at its top, not at the previous tab's scroll position. (Braces matter: an effect
+  // must return nothing or a clean-up function, and scrollTo may return a Promise.)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [tab]);
 
   // Another copy of the app on this device (installed app, tab, window) changed the saved Session:
   // adopt it, so this window never acts on a stale copy.
@@ -162,6 +169,7 @@ export function App() {
               />
             )}
 
+            {session && replacing === 'no' && tab === 'variance' && <VarianceScreen session={session} />}
             {session && replacing === 'no' && tab === 'report' && (
               <ReportScreen
                 session={session}
