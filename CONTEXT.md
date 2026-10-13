@@ -157,7 +157,7 @@ A new Adjustment linked to an Applied one, raised when the Count changed after A
 The tick required to mark an Adjustment Applied: "I checked the current Zobaze balance and intervening movements." The Export date is shown prominently on the Adjust tab and in the Adjustment Report, because the quantity is a difference measured against that Export.
 
 **Adjustment Report**:
-The separate Excel file listing every Adjustment with its status, split and history. It does not make the Session a Reported Session, and it has its own marker. Approved Adjustments that are not yet Applied are guarded the way unreported Counts are before a new Export is loaded.
+The separate Excel file made from the Adjust tab: a Summary (with the Export date), one row per Adjustment, and an Adjustment History of every move. It records who approved and applied each Adjustment, any change of Count after Applied, and correcting links. It is a record, not security. It does not make the Session a Reported Session, and it has its own marker: downloading it clears the replace-guard for what it covers, until the next Adjustment change.
 _Avoid_: Session Report (that one is about Counts)
 
 ### Access

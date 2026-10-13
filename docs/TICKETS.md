@@ -335,15 +335,15 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 **Depends on:** T24 (T25 for the history and flags). **Main risk:** the post-processing in `polish()` is tied to sheet numbers, and SheetJS Community cannot write colours.
 
 **Acceptance**
-- [ ] A separate workbook builder and file name (`stockcheck-adjustments-<branch>-<counter>-<date>-<time>.xlsx`).
-- [ ] Sheet 1 Summary: Branch, Counter, Export file, Export date (prominent), generated time, counts by status, totals by ADD and REMOVE units and value, and the "record, not security" note.
-- [ ] Sheet 2 Adjustments: one row per Adjustment with name, Variant, SKU or Key, `#n`, Expected, Count, Wastage, Total Variance, Unexplained Variance, ADD/REMOVE, quantity, status, approver, approval date and time, Supplier Document, Applied by and time, flags, link to a correcting Adjustment.
-- [ ] Sheet 3 History: every logged transition and review action.
-- [ ] ADD/REMOVE is written in words; green and red appear through a number format (for example `[Color10]+#,##0.000;[Red]-#,##0.000`) rather than cell styling that SheetJS cannot write.
-- [ ] Quantities and money are numeric cells; bold header, frozen panes, filter, as in T15.
-- [ ] The Session Report's `reportedChanges` is not touched, and the Session Report downloaded afterward is unchanged by this.
-- [ ] Downloading works while the Access Switch is suspended.
-- [ ] The existing Session Report builder and `polish` tests pass unchanged.
+- [x] A separate workbook builder and file name (`stockcheck-adjustments-<branch>-<counter>-<date>-<time>.xlsx`).
+- [x] Sheet 1 Summary: Branch, Counter, Export file, Export date (prominent), generated time, counts by status, totals by ADD and REMOVE units and value, and the "record, not security" note.
+- [x] Sheet 2 Adjustments: one row per Adjustment with name, Variant, SKU or Key, `#n`, Expected, Count, Wastage, Total Variance, Unexplained Variance, ADD/REMOVE, quantity, status, approver, approval date and time, Supplier Document, Applied by and time, flags, link to a correcting Adjustment.
+- [x] Sheet 3 "Adjustment History" (Excel does not allow a sheet called "History"): every logged transition and review action.
+- [x] ADD/REMOVE is written in words; green and red appear through a number format (for example `[Color10]+#,##0.000;[Red]-#,##0.000`) rather than cell styling that SheetJS cannot write.
+- [x] Quantities and money are numeric cells; bold header, frozen panes, filter, as in T15.
+- [x] The Session Report's `reportedChanges` is not touched, and the Session Report downloaded afterward is unchanged by this.
+- [x] Downloading works while the Access Switch is suspended.
+- [x] The existing Session Report builder and `polish` tests pass unchanged. (SheetJS shares number formats between workbooks in a page; the Adjustment Report restores that table after writing, so the Session Report stays byte-identical, tested in both orders.)
 
 ## T28: Cross-tab polish and documentation ⚪
 **Delivers:** consistency across screens and files, the end-to-end walkthrough, and the docs.

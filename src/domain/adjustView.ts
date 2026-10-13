@@ -3,6 +3,13 @@ import { normalise } from './search';
 import type { AdjustmentStatus, Session } from './session';
 
 /** The Adjust tab's list (T23): T22's Adjustments, sorted, counted, filtered and searched. */
+/** Plain wording for the Item flags that matter to an Adjustment (the Adjust tab and the Adjustment Report). */
+export const ITEM_FLAG_TEXT: Record<string, string> = {
+  'negative-system-stock': 'Negative System Stock',
+  'blank-expected': 'Expected was blank, treated as 0',
+  'no-cost': 'No cost price',
+};
+
 export type StatusFilter = 'All' | AdjustmentStatus;
 export const FILTERS: StatusFilter[] = ['All', 'Pending', 'Approved', 'Applied', 'Rejected', 'Held'];
 

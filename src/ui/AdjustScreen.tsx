@@ -1,20 +1,18 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { actionsFor, historyLine, sameName, type Action } from '../domain/adjustActions';
-import { adjustView, FILTERS, filterAdjustments, leftOutLine, matchingLine, statusCounts, type StatusFilter } from '../domain/adjustView';
+import { adjustView, FILTERS, filterAdjustments, ITEM_FLAG_TEXT, leftOutLine, matchingLine, statusCounts, type StatusFilter } from '../domain/adjustView';
 import { acknowledge, raiseCorrection, setSupplierDocument, transition, type Adjustment } from '../domain/adjustments';
 import { formatLocalTime, formatQuantity, formatUsd, signedQuantity, signedUsd } from '../domain/format';
 import { setCounter, type AdjustmentStatus, type Session } from '../domain/session';
 import { WASTAGE_FLAG_TEXT } from '../domain/wastage';
-import { loadApprovers, loadNames, rememberApprover } from './storage';
+import { adjustmentReportFileName, buildAdjustmentReport } from '../domain/adjustmentReport';
+import { isAdjustmentsReported } from '../domain/replaceGuard';
+import { download } from './download';
+import { loadApprovers, loadNames, rememberApprover, rememberNames } from './storage';
 
 /** Rows drawn at a time: a 600-Item stocktake stays quick on a cheap phone. Filter and search reach the rest. */
 const PAGE = 50;
 
-const ITEM_FLAG_TEXT: Record<string, string> = {
-  'negative-system-stock': 'Negative System Stock',
-  'blank-expected': 'Expected was blank, treated as 0',
-  'no-cost': 'No cost price',
-};
 
 const STATUS_STYLE: Record<AdjustmentStatus, string> = {
   Pending: 'bg-slate-100 text-slate-800',
@@ -32,7 +30,17 @@ const FIELD = 'mt-1 h-12 w-full rounded-xl border-2 border-slate-300 bg-white px
 const BUTTON = 'min-h-11 min-w-11 rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800';
 
 /** The Adjust tab (T23, T24, ADR 0007): what to correct in Zobaze by hand. StockCheck never changes Zobaze. */
-export function AdjustScreen({ session, onChange }: { session: Session; onChange: (session: Session) => void }) {
+type ScreenProps = {
+  session: Session;
+  onChange: (session: Session) => void;
+  /** An Adjustment Report was downloaded: the Adjustments are reported up to this point (T26, T27). */
+  onReported: () => void;
+  onCounter: (name: string) => void;
+  /** Open the Adjustment Report card at once (the guard sent the Counter here to download it). */
+  openReport?: boolean;
+};
+
+export function AdjustScreen({ session, onChange, onReported, onCounter, openReport = false }: ScreenProps) {
   const view = useMemo(() => adjustView(session), [session]);
   const counts = useMemo(() => statusCounts(view.list), [view]);
   const [filter, setFilter] = useState<StatusFilter>('All');
@@ -91,6 +99,8 @@ export function AdjustScreen({ session, onChange }: { session: Session; onChange
           {matching && <p data-testid="matching">{matching}</p>}
         </div>
       )}
+
+      <ReportCard session={session} empty={view.list.length === 0} open={openReport} onReported={onReported} onCounter={onCounter} />
 
       {view.needsReview > 0 && (
         <p data-testid="needs-review" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
@@ -424,5 +434,83 @@ function ReviewFlag({ review }: { review: NonNullable<Adjustment['review']> }) {
         {review.currentCount === null ? 'The Item has no Count now.' : `The Count is now ${formatQuantity(review.currentCount)}.`}
       </p>
     </div>
+  );
+}
+
+const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+/**
+ * "Generate Adjustment Report" (T27): a separate Excel file, with its own marker. It never marks the
+ * Session Report as reported. Branch and Counter are needed for the file name, like the Session Report.
+ */
+function ReportCard({ session, empty, open, onReported, onCounter }: { session: Session; empty: boolean; open: boolean; onReported: () => void; onCounter: (name: string) => void }) {
+  const names = useMemo(loadNames, []);
+  const [branch, setBranch] = useState(names.branches[0] ?? '');
+  const [counter, setCounter] = useState(session.counter || (names.counters[0] ?? ''));
+  const recorded = Object.keys(session.adjustments).length > 0;
+  const ready = branch.trim() !== '' && counter.trim() !== '' && !empty;
+  const status = !recorded
+    ? null
+    : isAdjustmentsReported(session)
+      ? { text: 'Downloaded: everything recorded so far is in the Adjustment Report.', tone: 'text-emerald-700' }
+      : session.adjustmentsReportedChanges === null
+        ? { text: 'Not downloaded yet.', tone: 'text-amber-800' }
+        : { text: 'Changed since the last Adjustment Report: download it again.', tone: 'text-amber-800' };
+
+  async function onGenerate() {
+    const now = new Date();
+    const report = buildAdjustmentReport(session, { branch: branch.trim(), counter: counter.trim(), generatedAt: now.toISOString() });
+    const { writeAdjustmentReport } = await import('../domain/workbook');
+    download(adjustmentReportFileName(branch.trim(), counter.trim(), now), writeAdjustmentReport(report), XLSX_TYPE);
+    rememberNames(branch.trim(), counter.trim());
+    onCounter(counter.trim());
+    onReported();
+  }
+
+  return (
+    <details data-testid="report-card" open={open || undefined} className="rounded-2xl bg-white shadow-sm">
+      <summary className="flex min-h-12 cursor-pointer items-center justify-between gap-2 px-4 py-2 text-base font-semibold">
+        <span>Adjustment Report</span>
+        {status && <span data-testid="report-status" className={`text-xs font-medium ${status.tone}`}>{status.text}</span>}
+      </summary>
+      <form
+        className="space-y-3 px-4 pb-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (ready) void onGenerate();
+        }}
+      >
+        <p className="text-sm text-slate-700">
+          A separate Excel file of every Adjustment, with who approved and applied each one and its history. It is a record, not security. It does not
+          change the Session Report.
+        </p>
+        <label className="block text-sm font-medium">
+          Branch
+          <input list="adjust-branches" value={branch} autoComplete="off" onChange={(e) => setBranch(e.target.value)} className={FIELD} />
+        </label>
+        <datalist id="adjust-branches">
+          {names.branches.map((b) => (
+            <option key={b} value={b} />
+          ))}
+        </datalist>
+        <label className="block text-sm font-medium">
+          Counter
+          <input list="adjust-counters" value={counter} autoComplete="off" onChange={(e) => setCounter(e.target.value)} className={FIELD} />
+        </label>
+        <datalist id="adjust-counters">
+          {names.counters.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
+        <button
+          type="submit"
+          disabled={!ready}
+          className="min-h-12 w-full rounded-2xl bg-brand-blue px-4 py-2 text-base font-bold text-white disabled:bg-slate-300 disabled:text-slate-600"
+        >
+          Generate Adjustment Report
+        </button>
+        {empty && <p className="text-sm text-slate-600">There are no Adjustments to report yet.</p>}
+      </form>
+    </details>
   );
 }

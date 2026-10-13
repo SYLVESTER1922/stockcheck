@@ -3,7 +3,7 @@ import { isSuspended, type Access } from '../domain/access';
 import { parseBackup } from '../domain/backup';
 import { formatUsd } from '../domain/format';
 import type { Field } from '../domain/headers';
-import { adjustmentsGuard, needsGuard } from '../domain/replaceGuard';
+import { adjustmentsGuard, markAdjustmentsReported, needsGuard } from '../domain/replaceGuard';
 import { buildReport } from '../domain/report';
 import { canReplace, markReported, newSession, setCounter, type Session } from '../domain/session';
 import { loadAccess, refreshAccess } from './accessCheck';
@@ -32,6 +32,8 @@ export function App() {
   const [replacing, setReplacing] = useState<Replacing>('no');
   /** A restored Session waiting for the guard (unreported Counts) to be resolved. */
   const [pendingRestore, setPendingRestore] = useState<Session | null>(null);
+  /** The replace-guard sent the Counter to the Adjust tab to download the Adjustment Report. */
+  const [reportRequested, setReportRequested] = useState(false);
 
   const [access, setAccess] = useState<Access>(loadAccess);
   const suspended = isSuspended(access);
@@ -42,6 +44,7 @@ export function App() {
   // must return nothing or a clean-up function, and scrollTo may return a Promise.)
   useEffect(() => {
     window.scrollTo(0, 0);
+    if (tab !== 'adjust') setReportRequested(false);
   }, [tab]);
 
   // Another copy of the app on this device (installed app, tab, window) changed the saved Session:
@@ -201,6 +204,12 @@ export function App() {
                   setReplacing('no');
                   setTab('adjust');
                 }}
+                onAdjustmentReport={() => {
+                  setPendingRestore(null);
+                  setReplacing('no');
+                  setReportRequested(true);
+                  setTab('adjust');
+                }}
                 onReportFirst={() => {
                   setPendingRestore(null);
                   setReplacing('no');
@@ -215,7 +224,15 @@ export function App() {
             )}
 
             {!isHome && session && replacing === 'no' && tab === 'variance' && <VarianceScreen session={session} />}
-            {!isHome && session && replacing === 'no' && tab === 'adjust' && <AdjustScreen session={session} onChange={setSession} />}
+            {!isHome && session && replacing === 'no' && tab === 'adjust' && (
+              <AdjustScreen
+                session={session}
+                onChange={setSession}
+                onReported={() => setSession((s) => s && markAdjustmentsReported(s))}
+                onCounter={(name) => setSession((s) => s && setCounter(s, name))}
+                openReport={reportRequested}
+              />
+            )}
             {!isHome && session && replacing === 'no' && tab === 'report' && (
               <ReportScreen
                 session={session}

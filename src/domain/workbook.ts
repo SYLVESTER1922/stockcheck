@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { parseGrid, type ExportResult } from './export';
+import type { AdjustmentHistoryRow, AdjustmentReport, AdjustmentReportRow } from './adjustmentReport';
 import type { Report, ReportRow, Status } from './report';
 import { WASTAGE_FLAG_LABEL } from './wastage';
 
@@ -238,4 +239,166 @@ function polish(data: ArrayBuffer, boldCells: Record<number, string[]>): ArrayBu
     put(path, sheet);
   }
   return XLSX.CFB.write(zip, { fileType: 'zip', type: 'array' }) as ArrayBuffer;
+}
+
+// ---- The Adjustment Report (T27, ADR 0007): a separate file; nothing above this line is used differently. ----
+
+/**
+ * Green and red come from the number format, not from cell styling, which SheetJS Community cannot
+ * write: positive is green (ADD), negative is red (REMOVE). The words ADD and REMOVE are always written too.
+ */
+const ADJ_FMT = {
+  ...FMT,
+  signedUnits: '[Color10]+#,##0.000;[Red]-#,##0.000;0.000',
+  signedMoney: '[Color10]+"$"#,##0.00;[Red]-"$"#,##0.00;"$"0.00',
+} as const;
+type AdjFormat = keyof typeof ADJ_FMT;
+
+type Column<T> = { header: string; width: number; format?: AdjFormat; value: (row: T) => unknown };
+const text = (value: string) => (value === '' ? null : value);
+
+const ADJUSTMENT_COLUMNS: Column<AdjustmentReportRow>[] = [
+  { header: 'Item', width: 28, value: (r) => r.name },
+  { header: 'Variant', width: 12, value: (r) => text(r.variant) },
+  { header: 'SKU or Key', width: 22, value: (r) => r.skuOrKey },
+  { header: 'Duplicate #', width: 11, value: (r) => r.duplicate },
+  { header: 'Cost price', width: 11, format: 'money', value: (r) => dollars(r.cost) },
+  { header: 'Expected', width: 11, format: 'units', value: (r) => units(r.expected) },
+  { header: 'Count', width: 11, format: 'units', value: (r) => units(r.count) },
+  { header: 'Wastage', width: 10, format: 'units', value: (r) => units(r.wastage) },
+  { header: 'Total Variance (units)', width: 15, format: 'signedUnits', value: (r) => units(r.total) },
+  { header: 'Unexplained Variance (units)', width: 16, format: 'signedUnits', value: (r) => units(r.unexplained) },
+  { header: 'Action', width: 9, value: (r) => r.action },
+  { header: 'Quantity (units)', width: 14, format: 'signedUnits', value: (r) => units(r.quantity) },
+  { header: 'Value ($)', width: 12, format: 'signedMoney', value: (r) => dollars(r.value) },
+  { header: 'Status', width: 11, value: (r) => r.status },
+  { header: 'Approved by', width: 16, value: (r) => text(r.approvedBy) },
+  { header: 'Approved at', width: 17, value: (r) => text(r.approvedAt) },
+  { header: 'Supplier Document', width: 18, value: (r) => text(r.supplierDocument) },
+  { header: 'Applied by', width: 16, value: (r) => text(r.appliedBy) },
+  { header: 'Applied at', width: 17, value: (r) => text(r.appliedAt) },
+  { header: 'Applied Check', width: 13, value: (r) => (r.appliedCheck ? 'Ticked' : null) },
+  { header: 'Flags', width: 34, value: (r) => text(r.flags) },
+  { header: 'Review', width: 60, value: (r) => text(r.review) },
+  { header: 'Corrects', width: 22, value: (r) => text(r.corrects) },
+  { header: 'Corrected by', width: 22, value: (r) => text(r.correctedBy) },
+  { header: 'Adjustment ID', width: 26, value: (r) => r.id },
+];
+
+const HISTORY_COLUMNS: Column<AdjustmentHistoryRow>[] = [
+  { header: 'Date and time', width: 17, value: (r) => r.at },
+  { header: 'Item', width: 28, value: (r) => r.name },
+  { header: 'Variant', width: 12, value: (r) => text(r.variant) },
+  { header: 'SKU or Key', width: 22, value: (r) => r.skuOrKey },
+  { header: 'Adjustment ID', width: 26, value: (r) => r.id },
+  { header: 'Event', width: 42, value: (r) => r.event },
+  { header: 'By', width: 22, value: (r) => text(r.by) },
+  { header: 'Note', width: 34, value: (r) => text(r.note) },
+  { header: 'From', width: 10, value: (r) => text(r.from) },
+  { header: 'To', width: 10, value: (r) => text(r.to) },
+  { header: 'Count before', width: 13, format: 'units', value: (r) => units(r.countBefore) },
+  { header: 'Count after', width: 12, format: 'units', value: (r) => units(r.countAfter) },
+  { header: 'Count reviewed', width: 14, format: 'units', value: (r) => units(r.countReviewed) },
+];
+
+/**
+ * Writes the Adjustment Report as .xlsx: Summary, Adjustments, Adjustment History (Excel reserves the
+ * name History). Quantities and money are numeric cells.
+ */
+export function writeAdjustmentReport(report: AdjustmentReport): ArrayBuffer {
+  return withoutLeftoverNumberFormats(() => {
+    const book = XLSX.utils.book_new();
+    const summary = adjustmentSummarySheet(report);
+    XLSX.utils.book_append_sheet(book, summary.sheet, 'Summary');
+    XLSX.utils.book_append_sheet(book, tableSheet(report.rows, ADJUSTMENT_COLUMNS), 'Adjustments');
+    XLSX.utils.book_append_sheet(book, tableSheet(report.history, HISTORY_COLUMNS), 'Adjustment History');
+    const plain = XLSX.write(book, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer;
+    const headers = (count: number) => Array.from({ length: count }, (_, c) => XLSX.utils.encode_cell({ r: 0, c }));
+    return polish(plain, { 1: summary.boldCells, 2: headers(ADJUSTMENT_COLUMNS.length), 3: headers(HISTORY_COLUMNS.length) });
+  });
+}
+
+/**
+ * SheetJS keeps the number formats it has met in a table shared by every workbook in the page. Left
+ * alone, the green and red formats of this report would show up (unused) in the next Session Report,
+ * which must stay exactly as it always was. So the table is put back as it was found.
+ */
+function withoutLeftoverNumberFormats<T>(write: () => T): T {
+  const before = new Set(Object.keys(XLSX.SSF.get_table()));
+  try {
+    return write();
+  } finally {
+    // The table object is replaced during a write, so it is fetched again here, not before.
+    const table = XLSX.SSF.get_table() as Record<string, string>;
+    for (const key of Object.keys(table)) if (!before.has(key)) delete table[key];
+  }
+}
+
+function tableSheet<T>(rows: T[], columns: Column<T>[]): XLSX.WorkSheet {
+  const sheet = XLSX.utils.aoa_to_sheet([columns.map((c) => c.header), ...rows.map((r) => columns.map((c) => c.value(r)))]);
+  columns.forEach((column, c) => {
+    if (!column.format) return;
+    for (let r = 1; r <= rows.length; r++) setAdjFormat(sheet, r, c, column.format);
+  });
+  sheet['!cols'] = columns.map((c) => ({ wch: c.width }));
+  sheet['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length, c: columns.length - 1 } }) };
+  return sheet;
+}
+
+function setAdjFormat(sheet: XLSX.WorkSheet, r: number, c: number, format: AdjFormat) {
+  const cell = sheet[XLSX.utils.encode_cell({ r, c })];
+  if (cell?.t === 'n') cell.z = ADJ_FMT[format];
+}
+
+function adjustmentSummarySheet(report: AdjustmentReport): { sheet: XLSX.WorkSheet; boldCells: string[] } {
+  const s = report.summary;
+  const rows: unknown[][] = [];
+  const formats: [number, number, AdjFormat][] = [];
+  const bold: string[] = [];
+  const emphasise = (row: number, columns: number) => {
+    for (let c = 0; c < columns; c++) bold.push(XLSX.utils.encode_cell({ r: row, c }));
+  };
+  const heading = (...cells: string[]) => {
+    emphasise(rows.length, cells.length);
+    rows.push(cells);
+  };
+  const line = (label: string, value: unknown, format?: AdjFormat) => {
+    if (format && value !== null && value !== '') formats.push([rows.length, 1, format]);
+    rows.push([label, value]);
+  };
+  const blank = () => rows.push([]);
+
+  heading('StockCheck Adjustment Report');
+  line('Branch', s.branch);
+  line('Counter', s.counter);
+  line('Export file', s.exportFileName);
+  emphasise(rows.length, 2); // the Export date is the one that matters: every quantity is measured against it
+  line('Export loaded (quantities are measured against this Export)', s.exportLoaded);
+  line('Report generated', s.generatedAt);
+  blank();
+
+  heading('Adjustments by status');
+  heading('Status', 'Adjustments');
+  for (const status of ['Pending', 'Approved', 'Applied', 'Rejected', 'Held'] as const) line(status, s.byStatus[status], 'count');
+  line('History only (count removed or changed)', s.historyOnly, 'count');
+  line('Applied Adjustments needing review', s.needsReview, 'count');
+  blank();
+
+  heading('Totals by action (Rejected and history-only rows are not included)');
+  heading('Action', 'Adjustments', 'Units', 'Value ($)');
+  for (const [label, t] of [['ADD', s.totals.add], ['REMOVE', s.totals.remove], ['Net', s.totals.net]] as const) {
+    formats.push([rows.length, 1, 'count'], [rows.length, 2, 'signedUnits'], [rows.length, 3, 'signedMoney']);
+    rows.push([label, t.adjustments, units(t.units), dollars(t.value)]);
+  }
+  blank();
+
+  heading('Note');
+  rows.push([s.note]);
+  blank();
+  rows.push(['Powered by Netrisyl Insights']);
+
+  const sheet = XLSX.utils.aoa_to_sheet(rows);
+  for (const [r, c, format] of formats) setAdjFormat(sheet, r, c, format);
+  sheet['!cols'] = [{ wch: 58 }, { wch: 22 }, { wch: 17 }, { wch: 17 }];
+  return { sheet, boldCells: bold };
 }

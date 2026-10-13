@@ -33,10 +33,10 @@ test('an Approved Adjustment that is not Applied stops a new Export, and discard
 
   await expect(guard(page)).toContainText(BLOCK);
   await expect(page.getByTestId('guard-adjustments')).toHaveText(
-    'It has 1 Approved Adjustment that is not yet Applied. Loading a new Export or restoring a backup clears them. Finish them in the Adjust tab first, or discard them.',
+    'It has 1 Approved Adjustment that is not yet Applied. Loading a new Export or restoring a backup clears them. Download the Adjustment Report first, or discard them.',
   );
   await expect(picker(page)).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Download the Adjustment Report first' })).toHaveCount(0); // T27 adds it
+  await expect(page.getByRole('button', { name: 'Download the Adjustment Report first' })).toBeVisible(); // T27
   await expect(page.getByRole('button', { name: 'Download the report first' })).toHaveCount(0); // the Counts are reported
 
   await page.getByRole('button', { name: 'Discard this Session' }).click();
