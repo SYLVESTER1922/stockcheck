@@ -291,6 +291,7 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 
 **Acceptance**
 - [ ] Each allowed transition is available from the row; disallowed ones are not offered.
+- [ ] Buttons are labelled from the STORED status (`storedStatus`), not the displayed one. A row that shows Held only because its ADD has no Supplier Document (stored Pending) must not offer "Held → Pending"; it offers the Pending moves and asks for the Supplier Document.
 - [ ] Approve asks for an approver name (remembered names suggested) and takes the time from the device clock, shown but not editable. A warning shows if the name matches the Session's Counter. Approving never needs the Counter's name to differ.
 - [ ] An ADD asks for a Supplier Document; without one the row stays Held and Approve is unavailable.
 - [ ] Mark Applied needs the tick "I checked the current Zobaze balance and intervening movements", a typed name, and shows the Export date.
@@ -311,6 +312,7 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 - [ ] Acknowledge, no action needed: needs a typed name and a note, adds an automatic timestamp, is logged, and clears the flag.
 - [ ] Raise a correcting Adjustment: creates a NEW Adjustment linked to the Applied one, with quantity = new Total Variance minus the quantity already applied (ADD if positive, REMOVE if negative). It goes through all statuses, the Applied Check and the Supplier Document rule. The flag clears when it is raised and the link is shown on both rows. If the difference is 0, only Acknowledge is offered.
 - [ ] Done removed: Pending and Held Adjustments and the live Wastage are dropped. Approved and Applied history stays, marked "count removed", with its snapshot and Wastage split.
+- [ ] An Applied record NEVER disappears from view. If a later count change drops its derived Adjustment (for example the Variance becomes zero, or Done is removed), the list still shows it, marked "count changed after Applied" (or "count removed"), with its history, until it is acknowledged or corrected. A test covers a Variance that becomes zero.
 - [ ] Records for an Item that is not currently Done are ignored when reading, so data left by an older version cannot show in the list or the totals.
 - [ ] Editing a Tally back to the approved value restores nothing automatically; the Adjustment stays Pending and needs approving again.
 - [ ] Existing tests unchanged.
