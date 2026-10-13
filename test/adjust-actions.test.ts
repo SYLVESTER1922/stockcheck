@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { adjustmentFor, setSupplierDocument, transition, type Adjustment } from '../src/domain/adjustments';
+import { acknowledge, adjustmentFor, deriveAdjustments, raiseCorrection, setSupplierDocument, transition, type Adjustment } from '../src/domain/adjustments';
 import { actionsFor, historyLine, sameName, type Action } from '../src/domain/adjustActions';
 import type { Item } from '../src/domain/export';
-import { addTally, finishItem, newSession, type AdjustmentStatus, type Session } from '../src/domain/session';
+import { addTally, editTally, finishItem, newSession, removeTally, type AdjustmentStatus, type Session } from '../src/domain/session';
 
 // T24, ADR 0007: which moves the screen offers. Buttons come from the STORED status; the rules are T22's.
 const AT = '2026-10-06T06:45:00.000Z';
@@ -191,5 +191,91 @@ describe('the approver and the Counter', () => {
     expect(sameName('', '')).toBe(false);
     expect(sameName('Alex', '')).toBe(false);
     expect(sameName('Alex', undefined)).toBe(false);
+  });
+});
+
+// ---- T25: the review flag and automatic entries ----
+
+describe('what a row with a review flag offers', () => {
+  const appliedSugar = () => go(go(session(), REMOVE, 'Approved'), REMOVE, 'Applied');
+  const rowOf = (s: Session, key = REMOVE.key) => deriveAdjustments(s).list.find((a) => a.id === key)!;
+
+  it('an Applied row with no flag offers nothing', () => {
+    expect(actionsFor(rowOf(appliedSugar()))).toEqual([]);
+  });
+
+  it('after a Count change it offers Acknowledge and Raise a correcting Adjustment, each with a name and a required note', () => {
+    const changed = editTally(appliedSugar(), REMOVE, 0, 7_000, AT);
+    const actions = actionsFor(rowOf(changed));
+    expect(actions.map((x) => x.label)).toEqual(['Acknowledge, no action needed', 'Raise a correcting Adjustment']);
+    expect(actions.map((x) => [x.kind, x.note, x.appliedCheck])).toEqual([
+      ['acknowledge', 'required', false],
+      ['correct', 'required', false],
+    ]);
+  });
+
+  it('when the count was removed, only Acknowledge is offered', () => {
+    const removed = removeTally(appliedSugar(), REMOVE, 0, AT);
+    expect(actionsFor(rowOf(removed)).map((x) => x.label)).toEqual(['Acknowledge, no action needed']);
+  });
+
+  it('once acknowledged, nothing is offered again', () => {
+    const changed = editTally(appliedSugar(), REMOVE, 0, 7_000, AT);
+    const r = acknowledge(changed, REMOVE, { by: 'Mary', note: 'seen', at: AT });
+    if (!r.ok) throw new Error(r.message);
+    expect(actionsFor(rowOf(r.session))).toEqual([]);
+  });
+
+  it('after a correcting Adjustment is raised, the Applied row offers nothing and the new one offers its moves', () => {
+    const changed = editTally(appliedSugar(), REMOVE, 0, 7_000, AT);
+    const r = raiseCorrection(changed, REMOVE, { by: 'Mary', note: 'found 1', at: AT });
+    if (!r.ok) throw new Error(r.message);
+    expect(actionsFor(rowOf(r.session))).toEqual([]);
+    expect(actionsFor(rowOf(r.session, `${REMOVE.key}~2`)).map((x) => x.label)).toEqual(['Add Supplier Document', 'Reject', 'Put on hold']);
+  });
+
+  it('history only (count removed): nothing at all', () => {
+    const removed = removeTally(go(session(), REMOVE, 'Approved'), REMOVE, 0, AT);
+    const row = rowOf(removed);
+    expect(row.gone).toBe('count-removed');
+    expect(actionsFor(row)).toEqual([]);
+  });
+});
+
+describe('the history lines for automatic and review entries', () => {
+  const at1 = new Date(2026, 9, 7, 8, 0).toISOString();
+  const WHEN = '2026-10-07 08:00';
+
+  it('says an Approval was cancelled because the Count changed, with both Counts', () => {
+    expect(historyLine({ at: at1, by: '', auto: true, action: 'Count changed', note: '', from: 'Approved', to: 'Pending', countFrom: 85_000, countTo: 88_500 })).toBe(
+      `Count changed from 85 to 88.5, so the Approval was cancelled · ${WHEN}`,
+    );
+  });
+
+  it('says an Approval was cancelled because the count was removed', () => {
+    expect(historyLine({ at: at1, by: '', auto: true, action: 'Count removed', note: '', from: 'Approved', to: 'Pending', countFrom: 85_000, countTo: null })).toBe(
+      `Count removed, so the Approval was cancelled · ${WHEN}`,
+    );
+  });
+
+  it('notes a removal after Applied without implying anything was undone', () => {
+    expect(historyLine({ at: at1, by: '', auto: true, action: 'Count removed', note: '', countFrom: 85_000, countTo: null })).toBe(`Count removed · ${WHEN}`);
+  });
+
+  it('says who acknowledged, and who raised a correcting Adjustment, with the note', () => {
+    expect(historyLine({ at: at1, by: 'Mary', action: 'Acknowledged', note: 'Recount agreed', reviewedCount: 88_000 })).toBe(
+      `Acknowledged by Mary, no action needed · ${WHEN} · Recount agreed`,
+    );
+    expect(historyLine({ at: at1, by: 'Mary', action: 'Correcting Adjustment raised', note: 'Three more found', reviewedCount: 88_000, linkedId: 'k~2' })).toBe(
+      `Correcting Adjustment raised by Mary · ${WHEN} · Three more found`,
+    );
+  });
+
+  it('keeps the wording free of accusation and security language', () => {
+    const lines = [
+      historyLine({ at: at1, by: '', auto: true, action: 'Count changed', note: '', from: 'Approved', to: 'Pending', countFrom: 1_000, countTo: 2_000 }),
+      historyLine({ at: at1, by: 'Mary', action: 'Acknowledged', note: '', reviewedCount: 1 }),
+    ];
+    expect(lines.join(' ')).not.toMatch(/signed|authori[sz]|verified|secure|fraud|suspicious|tamper/i);
   });
 });

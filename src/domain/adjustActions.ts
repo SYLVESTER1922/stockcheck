@@ -1,5 +1,5 @@
 import type { Adjustment } from './adjustments';
-import { formatLocalTime } from './format';
+import { formatLocalTime, formatQuantity } from './format';
 import type { AdjustmentLogEntry, AdjustmentStatus } from './session';
 
 /**
@@ -10,7 +10,8 @@ import type { AdjustmentLogEntry, AdjustmentStatus } from './session';
  */
 export type Action = {
   label: string;
-  kind: 'move' | 'document';
+  /** A status move, the Supplier Document, or one of the two ways to clear a review flag. */
+  kind: 'move' | 'document' | 'acknowledge' | 'correct';
   /** The status moved to, for a move. */
   to?: AdjustmentStatus;
   /** A note is not asked for, may be given, or must be given. */
@@ -27,7 +28,16 @@ const move = (label: string, to: AdjustmentStatus, note: Action['note'] = 'optio
   appliedCheck,
 });
 
+const review = (a: Adjustment): Action[] =>
+  a.review
+    ? [
+        { label: 'Acknowledge, no action needed', kind: 'acknowledge', note: 'required', appliedCheck: false },
+        ...(a.review.canCorrect ? [{ label: 'Raise a correcting Adjustment', kind: 'correct' as const, note: 'required' as const, appliedCheck: false }] : []),
+      ]
+    : [];
+
 export function actionsFor(a: Adjustment): Action[] {
+  if (a.gone) return []; // history only
   const approve = a.needsSupplierDocument ? [] : [move('Approve', 'Approved')];
   const document: Action[] =
     a.direction === 'ADD'
@@ -44,7 +54,7 @@ export function actionsFor(a: Adjustment): Action[] {
     case 'Approved':
       return [move('Mark Applied', 'Applied', 'optional', true), move('Revoke approval', 'Pending', 'required')];
     case 'Applied':
-      return [];
+      return review(a); // never a move: only the review of a change
   }
 }
 
@@ -67,8 +77,22 @@ const VERB = (entry: AdjustmentLogEntry): string => {
 
 /** One line of an Adjustment's history: who, what, when, and the note. Plain facts only. */
 export function historyLine(entry: AdjustmentLogEntry): string {
+  const when = formatLocalTime(entry.at);
+  if (entry.auto) return `${autoText(entry)} · ${when}`;
   const note = entry.action === 'Supplier Document' ? '' : entry.note;
-  return `${VERB(entry)} ${entry.by} · ${formatLocalTime(entry.at)}${note ? ` · ${note}` : ''}`;
+  const who = entry.action === 'Acknowledged' ? `${entry.by}, no action needed` : entry.by;
+  return `${VERB(entry)} ${who} · ${when}${note ? ` · ${note}` : ''}`;
+}
+
+/** What StockCheck itself did to an Adjustment when a Count changed. */
+function autoText(entry: AdjustmentLogEntry): string {
+  const cancelled = entry.to === 'Pending';
+  if (entry.action === 'Count changed') {
+    const from = entry.countFrom === undefined ? '' : ` from ${formatQuantity(entry.countFrom)}`;
+    const to = entry.countTo === null || entry.countTo === undefined ? '' : ` to ${formatQuantity(entry.countTo)}`;
+    return `Count changed${from}${to}, so the Approval was cancelled`;
+  }
+  return cancelled ? 'Count removed, so the Approval was cancelled' : 'Count removed';
 }
 
 const normal = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();

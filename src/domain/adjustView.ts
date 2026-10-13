@@ -6,8 +6,9 @@ import type { AdjustmentStatus, Session } from './session';
 export type StatusFilter = 'All' | AdjustmentStatus;
 export const FILTERS: StatusFilter[] = ['All', 'Pending', 'Approved', 'Applied', 'Rejected', 'Held'];
 
-/** Largest value (at cost) first, so the Items that matter most are on top; then by name. */
+/** Applied Adjustments waiting for a review first, so a change after Applied is never buried; then largest value (at cost); then name. */
 const byValueThenName = (a: Adjustment, b: Adjustment) =>
+  Number(b.review !== null) - Number(a.review !== null) ||
   Math.abs(b.value) - Math.abs(a.value) ||
   a.item.name.localeCompare(b.item.name) ||
   a.item.variant.localeCompare(b.item.variant) ||

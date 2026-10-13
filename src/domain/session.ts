@@ -45,6 +45,15 @@ export type AdjustmentLogEntry = {
   snapshot?: ApprovalSnapshot;
   /** On a move to Applied: the Applied Check was ticked. */
   appliedCheck?: true;
+  /** Made by StockCheck itself, not a person (a Count change or removal). `by` is empty. */
+  auto?: true;
+  /** For a Count change or removal: the Count at the last Approval, and the Count now (null: removed). */
+  countFrom?: number;
+  countTo?: number | null;
+  /** For an Acknowledge or a correcting Adjustment: the Count that was reviewed (null: removed). */
+  reviewedCount?: number | null;
+  /** For a correcting Adjustment raised: the id of the new Adjustment. */
+  linkedId?: string;
 };
 
 /** An Adjustment that has been acted on. An Item with no record is Pending (ADR 0007). */
@@ -195,7 +204,61 @@ function setTallies(session: Session, item: Item, tallies: number[], at: string)
     tallies.length > 0
       ? { ...session, tallies: { ...session.tallies, [item.key]: tallies } }
       : { ...session, tallies: otherTallies, finished: otherFinished, wastage: otherWastage };
-  return recordLookAgain(touched(next, at), item);
+  return reconcileAdjustments(recordLookAgain(touched(next, at), item), item, at);
+}
+
+/** What the last Approval agreed to: the snapshot on the last move to Approved. */
+export const approvedSnapshot = (record: AdjustmentRecord): ApprovalSnapshot | undefined =>
+  [...record.log].reverse().find((entry) => entry.to === 'Approved')?.snapshot;
+
+/** An Approval or an Applied mark is on record, even if it was revoked since. That history is kept. */
+export const hasApprovalHistory = (record: AdjustmentRecord): boolean => record.log.some((entry) => entry.to === 'Approved' || entry.to === 'Applied');
+
+/**
+ * What a Count change or removal does to this Item's Adjustments (ADR 0007), logged as an automatic entry:
+ * - Approved: back to Pending, the Approval stays in the log. Editing the Tally back restores nothing.
+ * - Applied: never changed. A removal is noted on its log; a change is shown as a review flag (derived).
+ * - Pending, Held, Rejected: dropped when Done is removed, unless an Approval is in their history.
+ */
+function reconcileAdjustments(session: Session, item: Item, at: string): Session {
+  const ids = Object.keys(session.adjustments).filter((id) => session.adjustments[id]!.itemKey === item.key);
+  if (ids.length === 0) return session;
+  const line = lineFor(session, item);
+  const count = line.status === 'finished' ? line.count : null;
+  const next = { ...session.adjustments };
+  let changed = false;
+
+  for (const id of ids) {
+    const record = next[id]!;
+    const snapshot = approvedSnapshot(record);
+    const alreadyNoted = record.log.at(-1)?.auto === true && record.log.at(-1)?.action === 'Count removed';
+    if (record.status === 'Approved') {
+      if (count !== null && (!snapshot || snapshot.count === count)) continue;
+      const entry: AdjustmentLogEntry = {
+        at,
+        by: '',
+        auto: true,
+        action: count === null ? 'Count removed' : 'Count changed',
+        note: '',
+        from: 'Approved',
+        to: 'Pending',
+        ...(snapshot ? { countFrom: snapshot.count } : {}),
+        countTo: count,
+      };
+      next[id] = { ...record, status: 'Pending', log: [...record.log, entry] };
+      changed = true;
+    } else if (count === null) {
+      if (record.status === 'Applied' || hasApprovalHistory(record)) {
+        if (alreadyNoted) continue;
+        const entry: AdjustmentLogEntry = { at, by: '', auto: true, action: 'Count removed', note: '', ...(snapshot ? { countFrom: snapshot.count } : {}), countTo: null };
+        next[id] = { ...record, log: [...record.log, entry] };
+      } else {
+        delete next[id];
+      }
+      changed = true;
+    }
+  }
+  return changed ? { ...session, adjustments: next, adjustmentChanges: session.adjustmentChanges + 1 } : session;
 }
 
 /**

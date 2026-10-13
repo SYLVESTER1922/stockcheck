@@ -307,15 +307,15 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 **Depends on:** T24. **Main risk:** silently changing an approval, or hiding a change after Applied.
 
 **Acceptance**
-- [ ] Count changes after Approved: it returns to Pending with a "count changed" marker, and the old Approval stays in the history.
-- [ ] Count changes after Applied: the Applied record is untouched and the row shows "count changed after Applied, review". The flag stays until one of the two actions below is done.
-- [ ] Acknowledge, no action needed: needs a typed name and a note, adds an automatic timestamp, is logged, and clears the flag.
-- [ ] Raise a correcting Adjustment: creates a NEW Adjustment linked to the Applied one, with quantity = new Total Variance minus the quantity already applied (ADD if positive, REMOVE if negative). It goes through all statuses, the Applied Check and the Supplier Document rule. The flag clears when it is raised and the link is shown on both rows. If the difference is 0, only Acknowledge is offered.
-- [ ] Done removed: Pending and Held Adjustments and the live Wastage are dropped. Approved and Applied history stays, marked "count removed", with its snapshot and Wastage split.
-- [ ] An Applied record NEVER disappears from view. If a later count change drops its derived Adjustment (for example the Variance becomes zero, or Done is removed), the list still shows it, marked "count changed after Applied" (or "count removed"), with its history, until it is acknowledged or corrected. A test covers a Variance that becomes zero.
-- [ ] Records for an Item that is not currently Done are ignored when reading, so data left by an older version cannot show in the list or the totals.
-- [ ] Editing a Tally back to the approved value restores nothing automatically; the Adjustment stays Pending and needs approving again.
-- [ ] Existing tests unchanged.
+- [x] Count changes after Approved: it returns to Pending with a "count changed" marker, and the old Approval stays in the history.
+- [x] Count changes after Applied: the Applied record is untouched and the row shows "count changed after Applied, review". The flag stays until one of the two actions below is done.
+- [x] Acknowledge, no action needed: needs a typed name and a note, adds an automatic timestamp, is logged, and clears the flag.
+- [x] Raise a correcting Adjustment: creates a NEW Adjustment linked to the Applied one, with quantity = new Total Variance minus the quantity already applied (ADD if positive, REMOVE if negative). It goes through all statuses, the Applied Check and the Supplier Document rule. The flag clears when it is raised and the link is shown on both rows. If the difference is 0, only Acknowledge is offered.
+- [x] Done removed: Pending and Held Adjustments and the live Wastage are dropped. Approved and Applied history stays, marked "count removed", with its snapshot and Wastage split.
+- [x] An Applied record NEVER disappears from view. If a later count change drops its derived Adjustment (for example the Variance becomes zero, or Done is removed), the list still shows it, marked "count changed after Applied" (or "count removed"), with its history, until it is acknowledged or corrected. A test covers a Variance that becomes zero.
+- [x] Records left by an older version are ignored when read: a Pending, Held or Rejected record with no Approval in its history is ignored if its Item is not Done, and an Approved record whose Count no longer matches is read as cancelled. Applied records and Approval history are always shown (see the line above).
+- [x] Editing a Tally back to the approved value restores nothing automatically; the Adjustment stays Pending and needs approving again.
+- [x] Existing tests unchanged. (Rows that need a review are listed first. Only a Count change cancels an Approval; a Wastage change does not. The Applied record's log gains an entry when it is acknowledged or corrected; its status and snapshot never change.)
 
 ## T26: Replace-guard for Adjustments ⚪
 **Delivers:** the warning before a new Export or restore would destroy unapplied Adjustments.

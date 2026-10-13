@@ -10,7 +10,7 @@ import {
 } from '../src/domain/adjustView';
 import type { Item } from '../src/domain/export';
 import { formatLocalTime } from '../src/domain/format';
-import { addTally, finishItem, newSession, type Session } from '../src/domain/session';
+import { addTally, editTally, finishItem, newSession, type Session } from '../src/domain/session';
 
 // T23, ADR 0007: the Adjust tab's list. The rules for which Items appear are T22's.
 const AT = '2026-10-06T06:45:00.000Z';
@@ -63,6 +63,22 @@ const approve = (s: Session, it: Item) => {
 describe('the list', () => {
   it('shows every Adjustment, largest value first, then by name', () => {
     expect(names(session())).toEqual(['Sugar', 'Cooking Oil', 'Soap', 'Rice']); // $22.50, $6.00, $5.00, $1.50
+  });
+
+  it('puts an Applied Adjustment that needs a review first, whatever its value', () => {
+    const apply = (x: Session, it: Item) => {
+      const approved = transition(x, it, { to: 'Approved', by: 'Mary', at: AT });
+      if (!approved.ok) throw new Error(approved.message);
+      const applied = transition(approved.session, it, { to: 'Applied', by: 'Joe', at: AT, appliedCheck: true });
+      if (!applied.ok) throw new Error(applied.message);
+      return applied.session;
+    };
+    // Rice has the smallest value ($1.50). It is applied, and then its Count changes.
+    const s = editTally(apply(session(), I.rice), I.rice, 0, 7_000, AT);
+    const list = adjustView(s).list;
+    expect(list[0]!.item.name).toBe('Rice');
+    expect(list[0]!.review).not.toBeNull();
+    expect(list.slice(1).map((a) => a.item.name)).toEqual(['Sugar', 'Cooking Oil', 'Soap']);
   });
 
   it('breaks ties by name and does not hide Items whose cost is $0', () => {

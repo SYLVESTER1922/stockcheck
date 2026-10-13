@@ -1,25 +1,9 @@
-import { expect, test, type Locator, type Page, type Route } from '@playwright/test';
+import { expect, test, type Route } from '@playwright/test';
+import { act, alertIn, buttons, form, press, row, TICK } from './helpers/adjustActions';
 import { adjust, open, seed, SMALL } from './helpers/adjustSession';
 
 // T24, ADR 0007: approvals and Applied marks. SMALL: Rice #1 REMOVE 1, Rice #2 ADD 2, Flour 2kg REMOVE 1,
 // Cooking Oil ADD 3, Soap ADD 5. The ADDs have no Supplier Document, so they show as Held.
-const row = (page: Page, text: string) => page.getByTestId('adjustment-row').filter({ hasText: text });
-const buttons = (r: Locator) => r.getByRole('button').evaluateAll((els) => els.map((el) => (el as HTMLElement).innerText.trim()));
-const form = (r: Locator) => r.getByTestId('action-form');
-const press = (r: Locator, name: string) => r.getByRole('button', { name, exact: true }).click();
-const alertIn = (r: Locator) => r.getByRole('alert');
-const TICK = 'I checked the current Zobaze balance and intervening movements.';
-
-async function act(r: Locator, label: string, fields: { name?: string; note?: string; doc?: string; tick?: boolean } = {}) {
-  await press(r, label);
-  const f = form(r);
-  if (fields.doc !== undefined) await f.getByLabel('Supplier Document (invoice or delivery note number)').fill(fields.doc);
-  if (fields.name !== undefined) await f.getByLabel('Your name').fill(fields.name);
-  if (fields.note !== undefined) await f.getByLabel('Note').fill(fields.note);
-  if (fields.tick) await f.getByLabel(TICK).check();
-  await f.getByRole('button', { name: label, exact: true }).click();
-}
-
 test('a Pending REMOVE offers Approve, Reject and Put on hold, and nothing else', async ({ page }) => {
   await open(page, SMALL);
   expect(await buttons(row(page, 'Flour'))).toEqual(['Approve', 'Reject', 'Put on hold']);

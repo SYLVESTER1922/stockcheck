@@ -1,7 +1,7 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { actionsFor, historyLine, sameName, type Action } from '../domain/adjustActions';
 import { adjustView, FILTERS, filterAdjustments, leftOutLine, matchingLine, statusCounts, type StatusFilter } from '../domain/adjustView';
-import { setSupplierDocument, transition, type Adjustment } from '../domain/adjustments';
+import { acknowledge, raiseCorrection, setSupplierDocument, transition, type Adjustment } from '../domain/adjustments';
 import { formatLocalTime, formatQuantity, formatUsd, signedQuantity, signedUsd } from '../domain/format';
 import { setCounter, type AdjustmentStatus, type Session } from '../domain/session';
 import { WASTAGE_FLAG_TEXT } from '../domain/wastage';
@@ -29,7 +29,7 @@ type Input = { by: string; note: string; document: string; appliedCheck: boolean
 type Apply = (a: Adjustment, action: Action, input: Input) => string | null;
 
 const FIELD = 'mt-1 h-12 w-full rounded-xl border-2 border-slate-300 bg-white px-3 text-base outline-none focus:border-brand-blue';
-const BUTTON = 'h-11 min-w-11 rounded-xl border-2 border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800';
+const BUTTON = 'min-h-11 min-w-11 rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800';
 
 /** The Adjust tab (T23, T24, ADR 0007): what to correct in Zobaze by hand. StockCheck never changes Zobaze. */
 export function AdjustScreen({ session, onChange }: { session: Session; onChange: (session: Session) => void }) {
@@ -56,12 +56,17 @@ export function AdjustScreen({ session, onChange }: { session: Session; onChange
       const at = new Date().toISOString();
       const result =
         action.kind === 'document'
-          ? setSupplierDocument(latest.current, a.item, input.document, input.by, at)
-          : transition(latest.current, a.item, { to: action.to!, by: input.by, note: input.note, at, appliedCheck: input.appliedCheck });
+          ? setSupplierDocument(latest.current, a.item, input.document, input.by, at, a.id)
+          : action.kind === 'acknowledge'
+            ? acknowledge(latest.current, a.item, { by: input.by, note: input.note, at })
+            : action.kind === 'correct'
+              ? raiseCorrection(latest.current, a.item, { by: input.by, note: input.note, at })
+              : transition(latest.current, a.item, { to: action.to!, by: input.by, note: input.note, at, appliedCheck: input.appliedCheck, id: a.id });
       if (!result.ok) return result.message;
       setApprovers(rememberApprover(input.by.trim()));
       const named = latest.current.counter === '' && input.counter.trim() !== '' ? setCounter(result.session, input.counter) : result.session;
-      setNotice(`${a.item.name}${a.item.variant ? ` ${a.item.variant}` : ''}: ${action.label} saved.`);
+      const done = action.kind === 'acknowledge' ? 'Acknowledged' : action.kind === 'correct' ? 'Correcting Adjustment raised' : `${action.label} saved`;
+      setNotice(`${a.item.name}${a.item.variant ? ` ${a.item.variant}` : ''}: ${done}.`);
       onChange(named);
       return null;
     },
@@ -85,6 +90,12 @@ export function AdjustScreen({ session, onChange }: { session: Session; onChange
           {leftOut && <p data-testid="left-out">{leftOut}</p>}
           {matching && <p data-testid="matching">{matching}</p>}
         </div>
+      )}
+
+      {view.needsReview > 0 && (
+        <p data-testid="needs-review" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+          {view.needsReview} Applied {view.needsReview === 1 ? 'Adjustment needs' : 'Adjustments need'} a review: the count changed after {view.needsReview === 1 ? 'it was' : 'they were'} applied.
+        </p>
       )}
 
       {notice && (
@@ -208,6 +219,35 @@ const AdjustmentRow = memo(function AdjustmentRow({ a, exportDate, counter, coun
         <Cell label="Unexplained Variance" value={signedQuantity(a.unexplained)} bold />
       </dl>
 
+      {a.status === 'Applied' && <p className="mt-1 text-xs text-slate-600">Figures as they were when it was applied.</p>}
+      {a.review && <ReviewFlag review={a.review} />}
+      {a.countChange && !a.gone && (
+        <p data-testid="count-changed" className="mt-2 rounded-xl border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
+          {a.countChange.to === null
+            ? 'The count was removed after it was approved, so the Approval was cancelled.'
+            : `The Count changed${a.countChange.from === null ? '' : ` from ${formatQuantity(a.countChange.from)}`} to ${formatQuantity(a.countChange.to)} after it was approved, so the Approval was cancelled. It needs approving again.`}
+        </p>
+      )}
+      {a.gone && (
+        <p data-testid="gone" className="mt-2 rounded-xl border border-slate-300 bg-slate-50 p-2 text-sm text-slate-800">
+          {a.gone === 'count-removed'
+            ? 'Count removed. This is the history of an Approval; nothing can be done with it.'
+            : 'The Count changed, so there is no Adjustment now. This is the history of an Approval.'}
+        </p>
+      )}
+      {a.corrects && (
+        <p data-testid="corrects" className="mt-2 text-sm text-slate-800">
+          Corrects the Adjustment applied{a.corrects.by ? ` by ${a.corrects.by}` : ''}
+          {a.corrects.at ? ` · ${formatLocalTime(a.corrects.at)}` : ''}: {a.corrects.direction} {a.corrects.direction === 'ADD' ? '+' : '−'}
+          {formatQuantity(a.corrects.quantity)}.
+        </p>
+      )}
+      {a.correctedBy.map((c) => (
+        <p key={c.id} data-testid="corrected-by" className="mt-2 text-sm text-slate-800">
+          A correcting Adjustment was raised: {c.direction} {c.direction === 'ADD' ? '+' : '−'}
+          {formatQuantity(c.quantity)} ({c.status}).
+        </p>
+      ))}
       {a.approval && (
         <p data-testid="approved-by" className="mt-2 text-sm text-slate-800">
           Approved by {a.approval.by} · {formatLocalTime(a.approval.at)}
@@ -296,6 +336,12 @@ function ActionForm({ a, action, exportDate, counter, counters, apply, onClose }
           This keeps the name you type and the time on this phone. It is a record, not security: anyone using this phone can type a name.
         </p>
       )}
+      {action.kind === 'correct' && a.review?.correction != null && (
+        <p data-testid="correction-preview" className="text-sm text-slate-700">
+          This raises a new Adjustment for the difference: {a.review.correction > 0 ? 'ADD +' : 'REMOVE −'}
+          {formatQuantity(Math.abs(a.review.correction))}. The Applied one is not changed.
+        </p>
+      )}
       {action.kind === 'document' && (
         <label className="block text-sm font-medium">
           Supplier Document (invoice or delivery note number)
@@ -322,7 +368,7 @@ function ActionForm({ a, action, exportDate, counter, counters, apply, onClose }
           This is the same name as the Counter of this count. That is allowed, and it is recorded as typed.
         </p>
       )}
-      {action.kind === 'move' && (
+      {action.kind !== 'document' && (
         <label className="block text-sm font-medium">
           {action.note === 'required' ? 'Note (needed)' : 'Note (optional)'}
           <input aria-label="Note" value={note} autoComplete="off" onChange={(e) => setNote(e.target.value)} className={FIELD} />
@@ -352,7 +398,7 @@ function ActionForm({ a, action, exportDate, counter, counters, apply, onClose }
         <button type="button" onClick={onClose} className="h-12 w-1/3 rounded-xl border-2 border-slate-300 bg-white text-sm font-semibold text-slate-700">
           Cancel
         </button>
-        <button type="submit" className="h-12 flex-1 rounded-xl bg-brand-blue text-base font-bold text-white active:bg-brand-deep">
+        <button type="submit" className="min-h-12 flex-1 rounded-xl bg-brand-blue px-2 py-2 text-base font-bold text-white active:bg-brand-deep">
           {action.label}
         </button>
       </div>
@@ -365,6 +411,18 @@ function Cell({ label, value, bold }: { label: string; value: string; bold?: boo
     <div className="rounded-xl bg-slate-50 p-2">
       <dt className="text-xs text-slate-600">{label}</dt>
       <dd className={bold ? 'font-bold' : ''}>{value}</dd>
+    </div>
+  );
+}
+
+function ReviewFlag({ review }: { review: NonNullable<Adjustment['review']> }) {
+  return (
+    <div data-testid="review-flag" className="mt-2 rounded-xl border border-amber-400 bg-amber-50 p-2 text-sm text-amber-900">
+      <p className="font-semibold">{review.reason === 'count-removed' ? 'Count removed after Applied: review' : 'Count changed after Applied: review'}</p>
+      <p>
+        It was applied with a Count of {formatQuantity(review.appliedCount)}.{' '}
+        {review.currentCount === null ? 'The Item has no Count now.' : `The Count is now ${formatQuantity(review.currentCount)}.`}
+      </p>
     </div>
   );
 }

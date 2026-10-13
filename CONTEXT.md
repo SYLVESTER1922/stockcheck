@@ -145,10 +145,13 @@ A manager's recorded agreement that an Adjustment should be made in Zobaze. It s
 _Avoid_: Sign-off, authorisation
 
 **Changed Count**:
-An Item's Count changing after its Adjustment was Approved. The Approval goes back to Pending with a "count changed" marker and the old Approval stays in the history. An Applied Adjustment is never changed: it gets a visible "count changed after Applied, review" flag instead, which stays until management either acknowledges it or raises a Correcting Adjustment. If the Item's Done is removed, its Pending and Held Adjustments and its live Wastage are dropped, and its Approved and Applied history (with the Approval snapshots and Wastage split) is kept, marked "count removed".
+An Item's Count changing after its Adjustment was Approved or Applied.
+- If Approved, the Approval is cancelled at once and the Adjustment goes back to Pending. StockCheck logs this itself (no person), with both Counts, and the old Approval stays in the history. Editing the Tally back restores nothing.
+- If Applied, the record is never changed. The row shows the figures as they were applied and a "Count changed after Applied: review" flag, which stays until management either acknowledges it or raises a Correcting Adjustment. An Applied row never disappears, even if the Variance becomes zero or Done is removed ("Count removed after Applied").
+- If Done is removed, the Item's Pending and Held Adjustments and its live Wastage are dropped. Approved and Applied history is kept, marked "count removed", with the Approval snapshot and Wastage split.
 
 **Correcting Adjustment**:
-A new Adjustment linked to an Applied one, raised when the Count changed after Applied. Its quantity is the new Total Variance minus the quantity already applied. It goes through the same statuses, Applied Check and Supplier Document rule as any Adjustment. The Applied record is never edited.
+A new Adjustment linked to an Applied one, raised when the Count changed after Applied. Its quantity is the new Total Variance minus everything already applied for the Item. It goes through the same statuses, Applied Check and Supplier Document rule as any Adjustment. The Applied record is never edited.
 
 **Applied Check**:
 The tick required to mark an Adjustment Applied: "I checked the current Zobaze balance and intervening movements." The Export date is shown prominently on the Adjust tab and in the Adjustment Report, because the quantity is a difference measured against that Export.
