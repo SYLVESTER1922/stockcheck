@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Item } from '../domain/export';
 import { formatQuantity, formatUsd } from '../domain/format';
-import { hasApprovedAdjustment } from '../domain/adjustments';
+import { countChangeHint } from '../domain/adjustments';
 import { addTally, editTally, finishItem, lineFor, removeTally, type Session } from '../domain/session';
 import { parseTally } from '../domain/tally';
 import { WastagePanel } from './WastagePanel';
@@ -94,11 +94,7 @@ export function ItemPanel({ item, session, onChange, onClose }: Props) {
         </ul>
       )}
 
-      {line.status === 'finished' && hasApprovedAdjustment(session, item) && (
-        <p data-testid="approved-hint" className="mt-2 rounded-xl border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
-          This Item has an Approved Adjustment. Changing the Count cancels the Approval, and it will need approving again.
-        </p>
-      )}
+      {line.status === 'finished' && <CountChangeHint kind={countChangeHint(session, item)} />}
 
       {line.status === 'finished' && (
         <>
@@ -212,3 +208,15 @@ function TallyEditor({ initial, onSave, onCancel }: { initial: string; onSave: (
 }
 
 const signed = (thousandths: number) => (thousandths > 0 ? `+${formatQuantity(thousandths)}` : formatQuantity(thousandths));
+
+/** What changing this Count would do to the Item's Adjustment (ADR 0007). Plain facts. */
+function CountChangeHint({ kind }: { kind: 'approved' | 'applied' | null }) {
+  if (kind === null) return null;
+  return (
+    <p data-testid={kind === 'approved' ? 'approved-hint' : 'applied-hint'} className="mt-2 rounded-xl border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
+      {kind === 'approved'
+        ? 'This Item has an Approved Adjustment. Changing the Count cancels the Approval, and it will need approving again.'
+        : 'This Item has an Applied Adjustment. Changing the Count will flag it for review.'}
+    </p>
+  );
+}

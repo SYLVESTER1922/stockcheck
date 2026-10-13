@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasApprovedAdjustment, raiseCorrection, setSupplierDocument, transition } from '../src/domain/adjustments';
+import { acknowledge, countChangeHint, hasApprovedAdjustment, raiseCorrection, setSupplierDocument, transition } from '../src/domain/adjustments';
 import type { Item } from '../src/domain/export';
 import { addTally, editTally, finishItem, newSession, removeTally, setWastage, type AdjustmentStatus, type Session } from '../src/domain/session';
 import { parseWastage } from '../src/domain/wastage';
@@ -64,5 +64,56 @@ describe('the Approved Adjustment hint', () => {
   it('does not show for a history-only row', () => {
     const s = removeTally(move(session(), SUGAR, 'Approved'), SUGAR, 0, AT); // count removed: history only
     expect(hasApprovedAdjustment(s, SUGAR)).toBe(false);
+  });
+});
+
+// ---- the Applied hint ----
+
+describe('the hint the Count tab shows for an Item', () => {
+  const appliedSugar = () => move(move(session(), SUGAR, 'Approved'), SUGAR, 'Applied');
+
+  it('is "approved" while the Adjustment is Approved, and "applied" once it is Applied', () => {
+    expect(countChangeHint(move(session(), SUGAR, 'Approved'), SUGAR)).toBe('approved');
+    expect(countChangeHint(appliedSugar(), SUGAR)).toBe('applied');
+  });
+
+  it('is nothing for an Item with no Adjustment, a Pending, Held or Rejected one, or one that is not counted', () => {
+    expect(countChangeHint(session(), SUGAR)).toBeNull();
+    expect(countChangeHint(move(session(), SUGAR, 'Held'), SUGAR)).toBeNull();
+    expect(countChangeHint(move(session(), SUGAR, 'Rejected'), SUGAR)).toBeNull();
+    expect(countChangeHint(newSession('e.xlsx', AT, [SUGAR]), SUGAR)).toBeNull();
+  });
+
+  it('is nothing for another Item', () => {
+    expect(countChangeHint(appliedSugar(), OIL)).toBeNull();
+  });
+
+  it('stops once the Count has changed after Applied: the review flag says it instead', () => {
+    expect(countChangeHint(editTally(appliedSugar(), SUGAR, 0, 88_000, AT), SUGAR)).toBeNull();
+  });
+
+  it('comes back after an Acknowledge, because the next change will be flagged again', () => {
+    const changed = editTally(appliedSugar(), SUGAR, 0, 88_000, AT);
+    const ack = acknowledge(changed, SUGAR, { by: 'Mary', note: 'seen', at: AT });
+    if (!ack.ok) throw new Error(ack.message);
+    expect(countChangeHint(ack.session, SUGAR)).toBe('applied');
+  });
+
+  it('is "approved" when an Approved correction sits beside the Applied Adjustment, never both', () => {
+    const changed = editTally(appliedSugar(), SUGAR, 0, 88_000, AT);
+    const raised = ok(raiseCorrection(changed, SUGAR, { by: 'Mary', note: 'n', at: AT }));
+    expect(countChangeHint(raised, SUGAR)).toBeNull(); // the correction is open: the Count is already being followed
+    const doc = ok(setSupplierDocument(raised, SUGAR, 'INV-1', 'Mary', AT, 'sku:S1~2'));
+    expect(countChangeHint(move(doc, SUGAR, 'Approved', 'sku:S1~2'), SUGAR)).toBe('approved');
+  });
+
+  it('is "applied" again once an open correction is Rejected and the Count has been reviewed', () => {
+    const changed = editTally(appliedSugar(), SUGAR, 0, 88_000, AT);
+    const raised = ok(raiseCorrection(changed, SUGAR, { by: 'Mary', note: 'n', at: AT }));
+    expect(countChangeHint(move(raised, SUGAR, 'Rejected', 'sku:S1~2'), SUGAR)).toBe('applied');
+  });
+
+  it('is nothing for a history-only row', () => {
+    expect(countChangeHint(removeTally(move(session(), SUGAR, 'Approved'), SUGAR, 0, AT), SUGAR)).toBeNull();
   });
 });

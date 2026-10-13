@@ -121,6 +121,19 @@ export function adjustmentFor(session: Session, item: Item, id: string = item.ke
   return adjustmentsOf(session, item).find((a) => a.id === id) ?? null;
 }
 
+/**
+ * What the Count tab says about changing this Item's Count: an Approval would be cancelled
+ * ('approved'), or an Applied Adjustment would be flagged for review ('applied'). Never both,
+ * and nothing once the Count is already being followed (an open correction) or already flagged.
+ */
+export function countChangeHint(session: Session, item: Item): 'approved' | 'applied' | null {
+  const rows = adjustmentsOf(session, item);
+  if (rows.some((a) => a.storedStatus === 'Approved' && a.gone === null)) return 'approved';
+  const open = (a: Adjustment) => a.correctedBy.some((c) => c.status === 'Pending' || c.status === 'Held' || c.status === 'Approved');
+  if (rows.every((a) => a.review === null) && rows.some((a) => a.status === 'Applied' && !open(a))) return 'applied';
+  return null;
+}
+
 /** True while changing this Item's Count would cancel an Approval (the Count tab says so). */
 export function hasApprovedAdjustment(session: Session, item: Item): boolean {
   return adjustmentsOf(session, item).some((a) => a.storedStatus === 'Approved' && a.gone === null);
