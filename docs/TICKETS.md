@@ -322,13 +322,13 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 **Depends on:** T25, T27 for the download button (build the guard with the button hidden, then enable it when T27 lands). **Main risk:** a regression in the existing reported-Session guard, which has e2e coverage.
 
 **Acceptance**
-- [ ] If any Adjustment is Approved but not Applied: the same pattern as unreported Counts. The Counter can download the Adjustment Report first, or discard with a second confirmation.
-- [ ] If only Pending or Held Adjustments exist: a plain warning that they will be lost, with the same choices.
-- [ ] Applied, Rejected and nothing-to-do Sessions are not blocked.
-- [ ] Downloading the Adjustment Report clears the Approved-not-Applied block until a later workflow change. That uses the adjustments-reported marker, never the Session's `reportedChanges`.
-- [ ] Both new Export and restore take this path, and `blockingSession()` also checks the saved copy.
-- [ ] Not blocked while the Access Switch is suspended (restore stays allowed, as in ADR 0006).
-- [ ] The existing guard tests (`guard`, `guard-installed`) pass unchanged.
+- [x] If any Adjustment is Approved but not Applied: the same pattern as unreported Counts. The Counter can download the Adjustment Report first (button hidden until T27 adds the report; until then the text says to finish them in the Adjust tab), or discard with a second confirmation.
+- [x] If only Pending or Held Adjustments exist: a plain warning that they will be lost, with the same choices. Only Adjustments with something recorded count: an untouched, derived Adjustment does not, so the pilot flow is unchanged.
+- [x] Applied, Rejected and nothing-to-do Sessions are not blocked.
+- [x] Downloading the Adjustment Report clears the Approved-not-Applied block (and the warning) until a later workflow change. That uses the adjustments-reported marker, never the Session's `reportedChanges`. The marker functions and their tests are in place; T27 only has to call `markAdjustmentsReported` and pass `onAdjustmentReport` to the guard.
+- [x] Both new Export and restore take this path, and `blockingSession()` also checks the saved copy.
+- [x] Not blocked while the Access Switch is suspended (restore stays allowed, as in ADR 0006).
+- [x] The existing guard tests (`guard`, `guard-installed`) pass unchanged.
 
 ## T27: Adjustment Report (Excel) ⚪
 **Delivers:** "Generate Adjustment Report" downloads a separate Excel file and sets only the adjustments-reported marker.

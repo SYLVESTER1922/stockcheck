@@ -3,6 +3,7 @@ import { isSuspended, type Access } from '../domain/access';
 import { parseBackup } from '../domain/backup';
 import { formatUsd } from '../domain/format';
 import type { Field } from '../domain/headers';
+import { adjustmentsGuard, needsGuard } from '../domain/replaceGuard';
 import { buildReport } from '../domain/report';
 import { canReplace, markReported, newSession, setCounter, type Session } from '../domain/session';
 import { loadAccess, refreshAccess } from './accessCheck';
@@ -56,9 +57,9 @@ export function App() {
    * and the saved one (another window may have counted, or this window's last save may have failed).
    */
   function blockingSession(): Session | null {
-    if (session && !canReplace(session)) return session;
+    if (session && needsGuard(session)) return session;
     const saved = loadSession();
-    return saved && !canReplace(saved) ? saved : null;
+    return saved && needsGuard(saved) ? saved : null;
   }
 
   function showGuard(blocking: Session) {
@@ -193,7 +194,13 @@ export function App() {
 
             {session && replacing === 'guard' && (
               <ReplaceGuard
-                countedItems={Object.keys(session.tallies).length}
+                countedItems={canReplace(session) ? null : Object.keys(session.tallies).length}
+                adjustments={adjustmentsGuard(session)}
+                onGoToAdjust={() => {
+                  setPendingRestore(null);
+                  setReplacing('no');
+                  setTab('adjust');
+                }}
                 onReportFirst={() => {
                   setPendingRestore(null);
                   setReplacing('no');

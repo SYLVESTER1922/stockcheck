@@ -54,9 +54,15 @@ Counters find Variances that are partly explained by known Wastage (expired, dam
 ### Markers and guards
 - Wastage entry bumps `changes`, so the Session Report shows "changed since the last report", but it does not move `lastChangeAt` ("Counting finished").
 - Adjustment workflow changes use a separate change counter and a separate "adjustments reported" marker. They never make the Session Report look out of date.
-- **Replacing the Session** (new Export or restore):
-  - If any Adjustment is Approved but not yet Applied: the same guard pattern as unreported Counts. Download the Adjustment Report first, or discard with a second confirmation.
-  - If only Pending or Held Adjustments exist: a plain warning.
+- **Replacing the Session** (new Export or restore) goes through the same guard as unreported Counts, shown by the same component, with Adjustments added:
+  - **What counts is what people recorded.** An Adjustment nobody has acted on is derived from the Counts, and the Session Report already holds those numbers, so it never triggers the guard. Only records with something in their log count, as do their cancelled Approvals kept as history. A Session with no records, such as one saved before this ADR, is guarded exactly as before.
+  - **Approved but not yet Applied: a block.** The same pattern as unreported Counts: download the Adjustment Report first, or discard with a second confirmation. The text says how many, and any others recorded.
+  - **Only Pending or Held with something recorded: a warning** that they will be lost, with the same choices and the same second confirmation.
+  - **Applied, Rejected, and Sessions with nothing recorded are not guarded.** An Applied Adjustment waiting for a review is not guarded either: the review flag is information, and the Applied record is in the Adjustment Report.
+  - **Downloading the Adjustment Report clears both until the next workflow change.** That uses the Adjustment marker (`adjustmentsReportedChanges` against `adjustmentChanges`), never the Session Report's marker, and downloading the Session Report never clears it. An automatic cancel after a Count change is a workflow change too. Until the Adjustment Report exists (T27) its button is not shown, and the text says to finish the Adjustments in the Adjust tab or discard them.
+  - **Unreported Counts and Adjustments are both said** when both apply, and the Counts wording is unchanged. A "Go to Adjust" button leads to the tab.
+  - `blockingSession()` checks this window's copy and the saved copy, so a stale window cannot replace a Session that has an Approved Adjustment.
+  - The guard comes before the Access Switch: while new Sessions are paused it still shows, discarding still works, and restoring stays allowed.
 - **Access Switch (ADR 0006) is untouched.** The Adjust tab, Wastage entry, the Adjustment Report and restore all work while new Sessions are suspended. Nothing here calls a network.
 
 ### Report and screen
