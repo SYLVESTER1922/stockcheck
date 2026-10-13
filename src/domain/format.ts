@@ -19,3 +19,10 @@ export function formatUsd(cents: number): string {
 export const signedUsd = (cents: number) => (cents > 0 ? `+${formatUsd(cents)}` : formatUsd(cents));
 export const signedQuantity = (thousandths: number) =>
   thousandths > 0 ? `+${formatQuantity(thousandths)}` : formatQuantity(thousandths);
+
+/** An ISO time in the phone's local time, to the minute: "2026-10-06 07:05". */
+export function formatLocalTime(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}

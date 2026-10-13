@@ -8,6 +8,7 @@ import { canReplace, markReported, newSession, type Session } from '../domain/se
 import { loadAccess, refreshAccess } from './accessCheck';
 import { BottomNav, type Tab } from './BottomNav';
 import { CountScreen } from './CountScreen';
+import { AdjustScreen } from './AdjustScreen';
 import { ExportPicker } from './ExportPicker';
 import { HomeScreen } from './HomeScreen';
 import { HowToCount } from './HowToCount';
@@ -207,6 +208,7 @@ export function App() {
             )}
 
             {!isHome && session && replacing === 'no' && tab === 'variance' && <VarianceScreen session={session} />}
+            {!isHome && session && replacing === 'no' && tab === 'adjust' && <AdjustScreen session={session} />}
             {!isHome && session && replacing === 'no' && tab === 'report' && (
               <ReportScreen
                 session={session}

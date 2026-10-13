@@ -275,15 +275,15 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 **Depends on:** T22. **Main risk:** a fifth tab may not fit at 360 px, and a long list is slow on a cheap phone.
 
 **Acceptance**
-- [ ] Bottom nav shows Count · Variance · Adjust · Report · How to count and fits at 360 px with no clipping, tested. If it cannot fit, the list is placed inside Report instead and the test says so.
-- [ ] Each row: name and Variant, SKU, Expected, Count, Wastage, Total Variance, Unexplained Variance, ADD or REMOVE with the quantity, status. ADD/REMOVE is in words and sign; green and red are only extra.
-- [ ] Duplicate Items show `#n` and cost; Items without a SKU show name plus Variant.
-- [ ] Export date shown prominently at the top. A line says how many Items were left out and why.
-- [ ] Status filter (All, Pending, Approved, Applied, Rejected, Held) and a search by name, Variant or SKU. The list is not capped at 20.
-- [ ] Wastage flags and "count changed" markers appear on their rows.
-- [ ] Works with no Session (not shown), with zero Adjustments (plain message), and while the Access Switch is suspended.
-- [ ] A test with a 1,000-Item Session keeps the list responsive (recorded in LEARNING.md).
-- [ ] All existing tests unchanged, including the 320 px layout test; the Adjust tab has its own 320 px check.
+- [x] Bottom nav shows Count · Variance · Adjust · Report · How to count and fits at 360 px with no clipping, tested. If it cannot fit, the list is placed inside Report instead and the test says so.
+- [x] Each row: name and Variant, SKU, Expected, Count, Wastage, Total Variance, Unexplained Variance, ADD or REMOVE with the quantity, status. ADD/REMOVE is in words and sign; green and red are only extra.
+- [x] Duplicate Items show `#n` and cost; Items without a SKU show name plus Variant.
+- [x] Export date shown prominently at the top. A line says how many Items were left out and why.
+- [x] Status filter (All, Pending, Approved, Applied, Rejected, Held) and a search by name, Variant or SKU. The list is not capped at 20.
+- [x] Wastage flags appear on their rows. ("Count changed" markers cannot exist until T25 adds the count-change handling; the row is ready for them.)
+- [x] Works with no Session (not shown), with zero Adjustments (plain message), and while the Access Switch is suspended.
+- [x] A test with a 1,000-Item Session keeps the list responsive (recorded in LEARNING.md). Rows are drawn 50 at a time with "Show 50 more"; filter and search reach every Adjustment.
+- [x] All existing tests unchanged, including the 320 px layout test; the Adjust tab has its own 320 px check.
 
 ## T24: Approval and Applied flows ⚪
 **Delivers:** the screen actions for every allowed transition, with the typed name, notes, Supplier Document, and the Applied Check.

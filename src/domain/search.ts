@@ -2,7 +2,7 @@
 type Searchable = { name: string; variant: string; category: string };
 
 // "2 KG" and "2kg" both become "2kg", so spacing between number and unit never matters.
-const normalise = (text: string) =>
+export const normalise = (text: string) =>
   text
     .toLowerCase()
     .replace(/(\d)\s+(?=[a-z])/g, '$1')
