@@ -110,10 +110,20 @@ export function deriveAdjustments(session: Session): AdjustmentsView {
   return view;
 }
 
+/** Every Adjustment row of one Item: its first one, any correcting ones, and history. */
+export function adjustmentsOf(session: Session, item: Item): Adjustment[] {
+  const records = Object.entries(session.adjustments).filter(([, record]) => record.itemKey === item.key);
+  return rowsForItem(session, item, records);
+}
+
 /** The Item's first Adjustment (or the one with `id`), or null. */
 export function adjustmentFor(session: Session, item: Item, id: string = item.key): Adjustment | null {
-  const records = Object.entries(session.adjustments).filter(([, record]) => record.itemKey === item.key);
-  return rowsForItem(session, item, records).find((a) => a.id === id) ?? null;
+  return adjustmentsOf(session, item).find((a) => a.id === id) ?? null;
+}
+
+/** True while changing this Item's Count would cancel an Approval (the Count tab says so). */
+export function hasApprovedAdjustment(session: Session, item: Item): boolean {
+  return adjustmentsOf(session, item).some((a) => a.storedStatus === 'Approved' && a.gone === null);
 }
 
 // ---- derivation ----
@@ -389,8 +399,7 @@ export type ReviewInput = { by: string; note: string; at: string };
 
 /** The Applied Adjustment of this Item that is waiting for a review, with what it needs. */
 function flagged(session: Session, item: Item): Adjustment | null {
-  const records = Object.entries(session.adjustments).filter(([, record]) => record.itemKey === item.key);
-  return rowsForItem(session, item, records).find((a) => a.review !== null) ?? null;
+  return adjustmentsOf(session, item).find((a) => a.review !== null) ?? null;
 }
 
 /** "Acknowledge, no action needed": management has seen the change. The Applied record is not changed. */

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Item } from '../domain/export';
 import { formatQuantity, formatUsd } from '../domain/format';
+import { hasApprovedAdjustment } from '../domain/adjustments';
 import { addTally, editTally, finishItem, lineFor, removeTally, type Session } from '../domain/session';
 import { parseTally } from '../domain/tally';
 import { WastagePanel } from './WastagePanel';
@@ -91,6 +92,12 @@ export function ItemPanel({ item, session, onChange, onClose }: Props) {
           )}
           {line.status === 'in-progress' && <li className="text-slate-500">{tallies.map(formatQuantity).join(' + ')} + …</li>}
         </ul>
+      )}
+
+      {line.status === 'finished' && hasApprovedAdjustment(session, item) && (
+        <p data-testid="approved-hint" className="mt-2 rounded-xl border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
+          This Item has an Approved Adjustment. Changing the Count cancels the Approval, and it will need approving again.
+        </p>
       )}
 
       {line.status === 'finished' && (
