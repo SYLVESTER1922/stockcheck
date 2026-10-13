@@ -22,8 +22,13 @@ Counters find Variances that are partly explained by known Wastage (expired, dam
 ### Statuses and approval
 - Statuses: Pending (no record), Approved, Applied, Rejected, Held. Allowed moves are listed in CONTEXT.md; Applied is final, and a mistake needs a new correcting Adjustment. Applied requires Approved. Every move is logged with a timestamp and a typed name, including who applied it.
 - **ADD needs a Supplier Document** (invoice or delivery note number). Without one the Adjustment goes to Held and cannot be Approved.
-- **Approval** records the approver's typed name (remembered names are suggestions) and the date and time from the device clock, which cannot be edited. It stores a snapshot of the approved quantities. A warning shows if the approver's name matches the Counter.
+- **Approval** records the approver's typed name (remembered names are suggestions) and the date and time from the device clock, which cannot be edited. It stores a snapshot of the approved quantities. A warning shows if the approver's name matches the Counter (see "The Counter's name" below).
 - **Marking Applied** requires the tick "I checked the current Zobaze balance and intervening movements". The Export date is shown prominently on the tab and in the report, because the quantity is a delta against that Export. A delta stays correct when sales happened after the Export; an absolute "set to" figure would not.
+- **The Counter's name** is kept on the Session (`counter`, optional, empty until known) so the approver warning has something to compare with.
+  - It is asked for once, in the first Approval form of a Session while it is still empty, and may be left empty. It is never guessed: the remembered names are suggestions only.
+  - The Report screen starts with it, and the name typed there when a report is downloaded is kept on the Session.
+  - The warning compares the approver with it, ignoring case and spacing. It is a warning only, never a block.
+  - Setting it moves no marker: it is not a Count change and not an Adjustment change, so a reported Session stays reported.
 - **This is a record, not security.** Names are typed on a phone and the Backup is a JSON file anyone can edit. The docs and the About text say so.
 
 ### Count changes
@@ -36,6 +41,7 @@ Counters find Variances that are partly explained by known Wastage (expired, dam
 ### Data and compatibility
 - **Same storage:** the same `localStorage` document, the same key `stockcheck.session.v1`. The key is NOT bumped, because that would orphan a Session already in progress on a phone. New fields (Wastage, Adjustment records and logs, the adjustments-reported marker) are optional and get empty defaults when a saved Session is loaded.
 - **Restore applies the same defaults.** Today restore returns the file's Session as it is. New fields must not be required by the damage check.
+- **Optional fields need no format bump.** Format 2 has not shipped, so the Counter's name (added after the other new fields) went into it. In general an optional field that the loader defaults, on load and on restore, can be added to a format without a bump. A bump is for a change an older reader would misread.
 - **Backup format 2.** The app reads formats 1 and 2. Format 1 backups and old saved Sessions load unchanged. A format 2 backup shown to an app version that only knows 1 fails with the existing clear "newer version, update the app" message. Writing 2 always is simpler than switching by content, so a phone that has not updated cannot silently drop approvals.
 - **Verified with a real saved Session fixture** kept in `private-notes/` (counts only, never committed), as well as synthetic fixtures in the repository.
 - **Existing Session Report columns do not move.** New columns go at the right end, because the collected reports are combined outside the app.

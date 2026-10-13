@@ -85,6 +85,8 @@ export type Session = {
   adjustmentChanges: number;
   /** The `adjustmentChanges` value the last Adjustment Report covered; null if never downloaded. */
   adjustmentsReportedChanges: number | null;
+  /** The Counter's typed name, '' until known (ADR 0007). Metadata: it moves no marker. */
+  counter: string;
 };
 
 export type Line =
@@ -116,7 +118,7 @@ export function newSession(exportFileName: string, loadedAt: string, items: Item
   };
 }
 
-const NEW_FIELDS = () => ({ wastage: {}, adjustments: {}, adjustmentChanges: 0, adjustmentsReportedChanges: null });
+const NEW_FIELDS = () => ({ wastage: {}, adjustments: {}, adjustmentChanges: 0, adjustmentsReportedChanges: null, counter: '' });
 
 /**
  * A saved or restored Session may lack fields added since it was written; they get their empty
@@ -133,6 +135,12 @@ export function withSessionDefaults(saved: Partial<Session>): Session {
     ...NEW_FIELDS(),
     ...saved,
   } as Session;
+}
+
+/** Keeps the Counter's name on the Session. Not a Count or an Adjustment change, so no marker moves. */
+export function setCounter(session: Session, name: string): Session {
+  const counter = name.trim();
+  return counter === session.counter ? session : { ...session, counter };
 }
 
 /** Another place: add a Tally. Done = addTally (if typed) + finishItem. */

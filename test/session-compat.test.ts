@@ -31,7 +31,7 @@ const OLD_SHAPE = {
   countAtLookAgain: {},
 };
 
-const EMPTY_NEW_FIELDS = { wastage: {}, adjustments: {}, adjustmentChanges: 0, adjustmentsReportedChanges: null };
+const EMPTY_NEW_FIELDS = { wastage: {}, adjustments: {}, adjustmentChanges: 0, adjustmentsReportedChanges: null, counter: '' };
 
 describe('new Session fields', () => {
   it('start empty on a new Session', () => {

@@ -141,7 +141,7 @@ _Avoid_: State, stage
 The invoice or delivery note number that supports an ADD Adjustment. An ADD without one is Held and cannot be Approved, so a surplus that nobody can explain is never added to Zobaze silently.
 
 **Approval**:
-A manager's recorded agreement that an Adjustment should be made in Zobaze. It stores the approver's typed name, the date and time from the phone's clock (not editable), and a snapshot of the quantities approved. It is a record, not security: anyone holding the phone can type a name, and a Backup can be edited. A warning shows if the approver's name matches the Session's Counter.
+A manager's recorded agreement that an Adjustment should be made in Zobaze. It stores the approver's typed name, the date and time from the phone's clock (not editable), and a snapshot of the quantities approved. It is a record, not security: anyone holding the phone can type a name, and a Backup can be edited. A warning shows if the approver's name matches the Session's Counter name, which is kept on the Session and asked for once, at the first Approval. It is a warning only, never a block.
 _Avoid_: Sign-off, authorisation
 
 **Changed Count**:

@@ -31,6 +31,7 @@ export function seed(items: SeedItem[]) {
     adjustments: {},
     adjustmentChanges: 0,
     adjustmentsReportedChanges: null,
+    counter: '',
   };
 }
 export async function open(page: Page, session: unknown) {

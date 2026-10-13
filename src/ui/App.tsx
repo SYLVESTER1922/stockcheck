@@ -4,7 +4,7 @@ import { parseBackup } from '../domain/backup';
 import { formatUsd } from '../domain/format';
 import type { Field } from '../domain/headers';
 import { buildReport } from '../domain/report';
-import { canReplace, markReported, newSession, type Session } from '../domain/session';
+import { canReplace, markReported, newSession, setCounter, type Session } from '../domain/session';
 import { loadAccess, refreshAccess } from './accessCheck';
 import { BottomNav, type Tab } from './BottomNav';
 import { CountScreen } from './CountScreen';
@@ -213,6 +213,7 @@ export function App() {
               <ReportScreen
                 session={session}
                 onReported={() => setSession((s) => s && markReported(s))}
+                onCounter={(name) => setSession((s) => s && setCounter(s, name))}
                 onRestore={onRestore}
               />
             )}

@@ -3,7 +3,7 @@ import { actionsFor, historyLine, sameName, type Action } from '../domain/adjust
 import { adjustView, FILTERS, filterAdjustments, leftOutLine, matchingLine, statusCounts, type StatusFilter } from '../domain/adjustView';
 import { setSupplierDocument, transition, type Adjustment } from '../domain/adjustments';
 import { formatLocalTime, formatQuantity, formatUsd, signedQuantity, signedUsd } from '../domain/format';
-import type { AdjustmentStatus, Session } from '../domain/session';
+import { setCounter, type AdjustmentStatus, type Session } from '../domain/session';
 import { WASTAGE_FLAG_TEXT } from '../domain/wastage';
 import { loadApprovers, loadNames, rememberApprover } from './storage';
 
@@ -24,7 +24,7 @@ const STATUS_STYLE: Record<AdjustmentStatus, string> = {
   Held: 'bg-amber-100 text-amber-900',
 };
 
-type Input = { by: string; note: string; document: string; appliedCheck: boolean };
+type Input = { by: string; note: string; document: string; appliedCheck: boolean; counter: string };
 /** Returns the refusal message, or null once the change is made. */
 type Apply = (a: Adjustment, action: Action, input: Input) => string | null;
 
@@ -40,7 +40,8 @@ export function AdjustScreen({ session, onChange }: { session: Session; onChange
   const [limit, setLimit] = useState(PAGE);
   const [notice, setNotice] = useState<string | null>(null);
   const [approvers, setApprovers] = useState(loadApprovers);
-  const counter = useMemo(() => loadNames().counters[0], []);
+  const counter = session.counter;
+  const counters = useMemo(() => loadNames().counters, []);
   const rows = useMemo(() => filterAdjustments(view.list, filter, query), [view, filter, query]);
   const leftOut = leftOutLine(view.leftOut);
   const matching = matchingLine(view.matching);
@@ -59,8 +60,9 @@ export function AdjustScreen({ session, onChange }: { session: Session; onChange
           : transition(latest.current, a.item, { to: action.to!, by: input.by, note: input.note, at, appliedCheck: input.appliedCheck });
       if (!result.ok) return result.message;
       setApprovers(rememberApprover(input.by.trim()));
+      const named = latest.current.counter === '' && input.counter.trim() !== '' ? setCounter(result.session, input.counter) : result.session;
       setNotice(`${a.item.name}${a.item.variant ? ` ${a.item.variant}` : ''}: ${action.label} saved.`);
-      onChange(result.session);
+      onChange(named);
       return null;
     },
     [onChange],
@@ -143,7 +145,7 @@ export function AdjustScreen({ session, onChange }: { session: Session; onChange
           <ul className="space-y-3">
             {rows.slice(0, limit).map((a) => (
               <li key={a.id}>
-                <AdjustmentRow a={a} exportDate={exportDate} counter={counter} apply={apply} />
+                <AdjustmentRow a={a} exportDate={exportDate} counter={counter} counters={counters} apply={apply} />
               </li>
             ))}
           </ul>
@@ -161,9 +163,9 @@ export function AdjustScreen({ session, onChange }: { session: Session; onChange
   );
 }
 
-type RowProps = { a: Adjustment; exportDate: string; counter: string | undefined; apply: Apply };
+type RowProps = { a: Adjustment; exportDate: string; counter: string; counters: string[]; apply: Apply };
 
-const AdjustmentRow = memo(function AdjustmentRow({ a, exportDate, counter, apply }: RowProps) {
+const AdjustmentRow = memo(function AdjustmentRow({ a, exportDate, counter, counters, apply }: RowProps) {
   const add = a.direction === 'ADD';
   const flags = [...a.itemFlags.flatMap((f) => (ITEM_FLAG_TEXT[f] ? [ITEM_FLAG_TEXT[f]] : [])), ...a.wastageFlags.map((f) => WASTAGE_FLAG_TEXT[f])];
   const [open, setOpen] = useState<Action | null>(null);
@@ -234,6 +236,7 @@ const AdjustmentRow = memo(function AdjustmentRow({ a, exportDate, counter, appl
           action={open}
           exportDate={exportDate}
           counter={counter}
+          counters={counters}
           apply={apply}
           onClose={() => setOpen(null)}
         />
@@ -263,14 +266,17 @@ const AdjustmentRow = memo(function AdjustmentRow({ a, exportDate, counter, appl
   );
 });
 
-function ActionForm({ a, action, exportDate, counter, apply, onClose }: { a: Adjustment; action: Action; exportDate: string; counter: string | undefined; apply: Apply; onClose: () => void }) {
+function ActionForm({ a, action, exportDate, counter, counters, apply, onClose }: { a: Adjustment; action: Action; exportDate: string; counter: string; counters: string[]; apply: Apply; onClose: () => void }) {
   const [by, setBy] = useState('');
+  const [counterTyped, setCounterTyped] = useState('');
   const [note, setNote] = useState('');
   const [supplierDoc, setSupplierDoc] = useState(a.supplierDocument);
   const [appliedCheck, setAppliedCheck] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const opened = useMemo(() => formatLocalTime(new Date().toISOString()), []);
   const records = action.to === 'Approved' || action.to === 'Applied';
+  const asksCounter = action.to === 'Approved' && counter === '';
+  const knownCounter = counter || counterTyped;
 
   return (
     <form
@@ -279,7 +285,7 @@ function ActionForm({ a, action, exportDate, counter, apply, onClose }: { a: Adj
       className="mt-3 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-3"
       onSubmit={(e) => {
         e.preventDefault();
-        const message = apply(a, action, { by, note, document: supplierDoc, appliedCheck });
+        const message = apply(a, action, { by, note, document: supplierDoc, appliedCheck, counter: counterTyped });
         if (message) setError(message);
         else onClose();
       }}
@@ -300,7 +306,18 @@ function ActionForm({ a, action, exportDate, counter, apply, onClose }: { a: Adj
         {action.to === 'Applied' ? 'Your name (who applied it)' : 'Your name'}
         <input aria-label="Your name" list="approver-names" value={by} autoComplete="off" onChange={(e) => setBy(e.target.value)} className={FIELD} />
       </label>
-      {action.to === 'Approved' && sameName(by, counter) && (
+      {asksCounter && (
+        <label className="block text-sm font-medium">
+          Counter of this count (asked once)
+          <input aria-label="Counter of this count" list="counter-names" value={counterTyped} autoComplete="off" onChange={(e) => setCounterTyped(e.target.value)} className={FIELD} />
+          <datalist id="counter-names">
+            {counters.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
+        </label>
+      )}
+      {action.to === 'Approved' && sameName(by, knownCounter) && (
         <p role="status" data-testid="same-name" className="rounded-xl border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
           This is the same name as the Counter of this count. That is allowed, and it is recorded as typed.
         </p>

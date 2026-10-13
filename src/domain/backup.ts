@@ -55,6 +55,7 @@ function newFieldsLookRight(s: Record<string, unknown>): boolean {
   return (
     allRecords(s.wastage, (w) => typeof w.quantity === 'number') &&
     allRecords(s.adjustments, (a) => typeof a.itemKey === 'string' && typeof a.status === 'string' && Array.isArray(a.log)) &&
+    (s.counter === undefined || typeof s.counter === 'string') &&
     (s.adjustmentChanges === undefined || typeof s.adjustmentChanges === 'number') &&
     (s.adjustmentsReportedChanges === undefined ||
       s.adjustmentsReportedChanges === null ||

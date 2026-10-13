@@ -31,7 +31,7 @@ test('Approve needs a name, says so when it is missing, then shows who approved 
   await press(flour, 'Approve');
   await expect(form(flour)).toContainText('It is a record, not security');
   await expect(form(flour)).toContainText(/Time: \d{4}-\d{2}-\d{2} \d{2}:\d{2}, taken from this phone/);
-  expect(await form(flour).locator('input').count()).toBe(2); // a name and a note: the time is not a field
+  expect(await form(flour).locator('input').count()).toBe(3); // the Counter (first Approval only), a name and a note: the time is not a field
   await form(flour).getByRole('button', { name: 'Approve', exact: true }).click();
   await expect(alertIn(flour)).toHaveText('Type your name.');
   await expect(flour.getByTestId('status')).toHaveText('Pending');
@@ -53,17 +53,64 @@ test('remembered names are suggestions only: never filled in for the next person
 });
 
 test('approving under the Counter\'s own name shows a warning and still works', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('stockcheck.names.v1', JSON.stringify({ branches: [], counters: ['Alex Moyo'] })));
-  await open(page, SMALL);
+  await open(page, { ...SMALL, counter: 'Alex Moyo' });
   const flour = row(page, 'Flour');
   await press(flour, 'Approve');
+  await expect(form(flour).getByLabel('Counter of this count')).toHaveCount(0); // already known: not asked again
   await form(flour).getByLabel('Your name').fill('alex  moyo');
   await expect(flour.getByTestId('same-name')).toContainText('same name as the Counter');
   await form(flour).getByLabel('Your name').fill('Mary');
   await expect(flour.getByTestId('same-name')).toHaveCount(0);
   await form(flour).getByLabel('Your name').fill('Alex Moyo');
   await form(flour).getByRole('button', { name: 'Approve', exact: true }).click();
+  await expect(flour.getByTestId('status')).toHaveText('Approved'); // a warning, never a block
+});
+
+test('the Counter is asked for once, on the first Approval, and kept on the Session', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('stockcheck.names.v1', JSON.stringify({ branches: [], counters: ['Alex Moyo'] })));
+  await open(page, SMALL);
+  const flour = row(page, 'Flour');
+  await press(flour, 'Approve');
+  await expect(form(flour).getByLabel('Counter of this count')).toHaveValue(''); // never guessed
+  await expect(page.locator('datalist#counter-names option[value="Alex Moyo"]')).toHaveCount(1);
+  await form(flour).getByLabel('Counter of this count').fill('Alex Moyo');
+  await form(flour).getByLabel('Your name').fill('alex moyo');
+  await expect(flour.getByTestId('same-name')).toBeVisible(); // the typed Counter is used straight away
+  await form(flour).getByRole('button', { name: 'Approve', exact: true }).click();
   await expect(flour.getByTestId('status')).toHaveText('Approved');
+
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('stockcheck.session.v1')!));
+  expect(saved.counter).toBe('Alex Moyo');
+  await press(row(page, '#1'), 'Approve');
+  await expect(form(row(page, '#1')).getByLabel('Counter of this count')).toHaveCount(0); // asked once
+});
+
+test('leaving the Counter empty is allowed, and it is asked again next time', async ({ page }) => {
+  await open(page, SMALL);
+  await act(row(page, 'Flour'), 'Approve', { name: 'Mary' });
+  await expect(row(page, 'Flour').getByTestId('status')).toHaveText('Approved');
+  await press(row(page, '#1'), 'Approve');
+  await expect(form(row(page, '#1')).getByLabel('Counter of this count')).toBeVisible();
+});
+
+test('the Report screen starts with the Counter kept on the Session', async ({ page }) => {
+  await open(page, { ...SMALL, counter: 'Alex Moyo' });
+  await page.getByRole('button', { name: 'Report', exact: true }).click();
+  await expect(page.getByLabel('Counter', { exact: true })).toHaveValue('Alex Moyo');
+});
+
+test('typing the Counter on the Report screen keeps it on the Session, and the report stays reported', async ({ page }) => {
+  await open(page, SMALL);
+  await page.getByRole('button', { name: 'Report', exact: true }).click();
+  await page.getByLabel('Branch').fill('Main Street');
+  await page.getByLabel('Counter', { exact: true }).fill('Sam Dube');
+  await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download report' }).click()]);
+  await expect(page.getByText('Reported: the latest counts are in your downloaded report.')).toBeVisible();
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('stockcheck.session.v1')!));
+  expect(saved.counter).toBe('Sam Dube');
+  await adjust(page);
+  await press(row(page, 'Flour'), 'Approve');
+  await expect(form(row(page, 'Flour')).getByLabel('Counter of this count')).toHaveCount(0);
 });
 
 test('an ADD with no Supplier Document shows as Held, and does not offer Approve or Back to Pending', async ({ page }) => {

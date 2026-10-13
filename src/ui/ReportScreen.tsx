@@ -10,12 +10,12 @@ import { loadNames, rememberNames } from './storage';
 
 const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
-type Props = { session: Session; onReported: () => void; onRestore: (file: File) => void };
+type Props = { session: Session; onReported: () => void; onCounter: (name: string) => void; onRestore: (file: File) => void };
 
-export function ReportScreen({ session, onReported, onRestore }: Props) {
+export function ReportScreen({ session, onReported, onCounter, onRestore }: Props) {
   const names = useMemo(loadNames, []);
   const [branch, setBranch] = useState(names.branches[0] ?? '');
-  const [counter, setCounter] = useState(names.counters[0] ?? '');
+  const [counter, setCounter] = useState(session.counter || (names.counters[0] ?? ''));
   const preview = buildReport(session, { branch, counter, generatedAt: new Date().toISOString() }).summary;
   const ready = branch.trim() !== '' && counter.trim() !== '';
 
@@ -25,6 +25,7 @@ export function ReportScreen({ session, onReported, onRestore }: Props) {
     const { writeReport } = await import('../domain/workbook');
     download(reportFileName(branch.trim(), counter.trim(), now), writeReport(report), XLSX_TYPE);
     rememberNames(branch.trim(), counter.trim());
+    onCounter(counter.trim());
     onReported();
   }
 

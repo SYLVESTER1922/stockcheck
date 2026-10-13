@@ -292,7 +292,7 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 **Acceptance**
 - [x] Each allowed transition is available from the row; disallowed ones are not offered.
 - [x] Buttons are labelled from the STORED status (`storedStatus`), not the displayed one. A row that shows Held only because its ADD has no Supplier Document (stored Pending) must not offer "Held → Pending"; it offers the Pending moves and asks for the Supplier Document.
-- [x] Approve asks for an approver name (remembered names suggested) and takes the time from the device clock, shown but not editable. A warning shows if the name matches the Counter, which is the most recent Counter name typed on this phone (the Session itself does not store one). Approving never needs the Counter's name to differ.
+- [x] Approve asks for an approver name (remembered names suggested) and takes the time from the device clock, shown but not editable. A warning shows if the name matches the Counter, which is kept on the Session (asked once at the first Approval, pre-filled on the Report screen). Approving never needs the Counter's name to differ.
 - [x] An ADD asks for a Supplier Document; without one the row stays Held and Approve is unavailable.
 - [x] Mark Applied needs the tick "I checked the current Zobaze balance and intervening movements", a typed name, and shows the Export date.
 - [x] Revoke (Approved → Pending) and Reopen (Rejected → Pending) ask for a note. Reject, Put on hold and Back to Pending take an optional one.
