@@ -50,3 +50,26 @@ export function rememberNames(branch: string, counter: string): void {
     // Suggestions are a convenience; losing them is harmless.
   }
 }
+
+// Names typed as approver or applier, offered as <datalist> suggestions only. Never pre-filled (ADR 0007).
+const APPROVERS_KEY = 'stockcheck.approvers.v1';
+
+export function loadApprovers(): string[] {
+  try {
+    const raw = localStorage.getItem(APPROVERS_KEY);
+    const list = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(list) ? list.filter((n): n is string => typeof n === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function rememberApprover(name: string): string[] {
+  const next = [name, ...loadApprovers().filter((n) => n !== name)].slice(0, 10);
+  try {
+    localStorage.setItem(APPROVERS_KEY, JSON.stringify(next));
+  } catch {
+    // Suggestions are a convenience; losing them is harmless.
+  }
+  return next;
+}

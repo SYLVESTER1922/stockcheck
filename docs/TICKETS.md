@@ -290,17 +290,17 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 **Depends on:** T23. **Main risk:** a record that looks like security when it is not.
 
 **Acceptance**
-- [ ] Each allowed transition is available from the row; disallowed ones are not offered.
-- [ ] Buttons are labelled from the STORED status (`storedStatus`), not the displayed one. A row that shows Held only because its ADD has no Supplier Document (stored Pending) must not offer "Held → Pending"; it offers the Pending moves and asks for the Supplier Document.
-- [ ] Approve asks for an approver name (remembered names suggested) and takes the time from the device clock, shown but not editable. A warning shows if the name matches the Session's Counter. Approving never needs the Counter's name to differ.
-- [ ] An ADD asks for a Supplier Document; without one the row stays Held and Approve is unavailable.
-- [ ] Mark Applied needs the tick "I checked the current Zobaze balance and intervening movements", a typed name, and shows the Export date.
-- [ ] Revoke and Reject → Pending ask for a note.
-- [ ] A row's history (every transition, who, when, note) can be opened.
-- [ ] Names are remembered as suggestions only.
-- [ ] The text "a record, not security" is shown on the Approve action and in How to count (About).
-- [ ] Changes are saved and survive reload, restore and a second window.
-- [ ] Existing tests unchanged.
+- [x] Each allowed transition is available from the row; disallowed ones are not offered.
+- [x] Buttons are labelled from the STORED status (`storedStatus`), not the displayed one. A row that shows Held only because its ADD has no Supplier Document (stored Pending) must not offer "Held → Pending"; it offers the Pending moves and asks for the Supplier Document.
+- [x] Approve asks for an approver name (remembered names suggested) and takes the time from the device clock, shown but not editable. A warning shows if the name matches the Counter, which is the most recent Counter name typed on this phone (the Session itself does not store one). Approving never needs the Counter's name to differ.
+- [x] An ADD asks for a Supplier Document; without one the row stays Held and Approve is unavailable.
+- [x] Mark Applied needs the tick "I checked the current Zobaze balance and intervening movements", a typed name, and shows the Export date.
+- [x] Revoke (Approved → Pending) and Reopen (Rejected → Pending) ask for a note. Reject, Put on hold and Back to Pending take an optional one.
+- [x] A row's history (every transition, who, when, note) can be opened.
+- [x] Names are remembered as suggestions only.
+- [x] The text "a record, not security" is shown on the Approve action and in How to count (About).
+- [x] Changes are saved and survive reload, restore and a second window.
+- [x] Existing tests unchanged. (The bottom-nav label became "Help" in a separate commit, with the three tests that clicked it.)
 
 ## T25: Count changes and the review flag ⚪
 **Delivers:** what happens to Adjustments when a Count changes or Done is removed, and the two ways to clear the review flag.

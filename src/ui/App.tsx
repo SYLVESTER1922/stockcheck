@@ -208,7 +208,7 @@ export function App() {
             )}
 
             {!isHome && session && replacing === 'no' && tab === 'variance' && <VarianceScreen session={session} />}
-            {!isHome && session && replacing === 'no' && tab === 'adjust' && <AdjustScreen session={session} />}
+            {!isHome && session && replacing === 'no' && tab === 'adjust' && <AdjustScreen session={session} onChange={setSession} />}
             {!isHome && session && replacing === 'no' && tab === 'report' && (
               <ReportScreen
                 session={session}

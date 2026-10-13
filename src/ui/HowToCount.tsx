@@ -15,6 +15,18 @@ export function HowToCount({ onBack }: { onBack: () => void }) {
           </li>
         ))}
       </ol>
+      <div data-testid="about-adjustments" className="mt-6 border-t border-slate-200 pt-4 text-sm">
+        <h3 className="font-semibold">Wastage and Adjustments</h3>
+        <p className="mt-1">
+          The Adjust tab lists what to correct in Zobaze. StockCheck never changes Zobaze: staff make each change by hand, then
+          mark the Adjustment Applied.
+        </p>
+        <p className="mt-2">
+          Approved by and Applied by are a record, not security. They keep the name someone typed and the time on this phone, so
+          the manager can see who agreed and who applied each Adjustment. Anyone using this phone can type any name, and a backup
+          file can be edited.
+        </p>
+      </div>
       <div data-testid="about" className="mt-6 border-t border-slate-200 pt-4 text-sm">
         <h3 className="font-semibold">About StockCheck</h3>
         <p className="mt-1">{ABOUT_TEXT}</p>
