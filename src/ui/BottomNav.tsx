@@ -4,7 +4,7 @@ type Props = { tab: Tab; hasSession: boolean; uncounted: number; onTab: (tab: Ta
 
 /**
  * Bottom navigation, within thumb reach. Icons and the badge are aria-hidden so each button's
- * accessible name is exactly its label ("Count", "Variance", "Adjust", "Report", "How to count").
+ * accessible name is exactly its label ("Count", "Variance", "Adjust", "Report", "Help").
  */
 export function BottomNav({ tab, hasSession, uncounted, onTab }: Props) {
   const tabs: { id: Tab; label: string; icon: string; show: boolean }[] = [
@@ -12,7 +12,7 @@ export function BottomNav({ tab, hasSession, uncounted, onTab }: Props) {
     { id: 'variance', label: 'Variance', icon: '📊', show: hasSession },
     { id: 'adjust', label: 'Adjust', icon: '🔧', show: hasSession },
     { id: 'report', label: 'Report', icon: '🧾', show: hasSession },
-    { id: 'help', label: 'How to count', icon: '❓', show: true },
+    { id: 'help', label: 'Help', icon: '❓', show: true },
   ];
 
   return (

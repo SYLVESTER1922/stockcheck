@@ -56,7 +56,7 @@ test('after going to the background and back (e.g. switching apps)', async ({ pa
 test('after the How to count screen', async ({ page }) => {
   await installed(page);
   await countSugarDone(page);
-  await page.getByRole('button', { name: 'How to count' }).click();
+  await page.getByRole('button', { name: 'Help', exact: true }).click();
   await page.getByRole('button', { name: 'Back' }).click();
   await expectRefusal(page);
 });

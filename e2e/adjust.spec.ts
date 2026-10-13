@@ -70,7 +70,7 @@ test('the bottom nav has five tabs in order, only when there is a Session', asyn
   await loadTiny(page);
   await expect(page.locator('nav button')).toHaveCount(5);
   const names = await page.locator('nav button').evaluateAll((els) => els.map((el) => (el as HTMLElement).innerText.split('\n').filter((l) => /[A-Za-z]/.test(l)).join(' ')));
-  expect(names).toEqual(['Count', 'Variance', 'Adjust', 'Report', 'How to count']);
+  expect(names).toEqual(['Count', 'Variance', 'Adjust', 'Report', 'Help']);
 });
 
 for (const width of [360, 320]) {

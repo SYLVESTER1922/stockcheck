@@ -58,7 +58,7 @@ for (const [screen, open] of [
   ['Count', async (page: Page) => page.getByRole('button', { name: 'Count', exact: true }).click()],
   ['Variance', async (page: Page) => page.getByRole('button', { name: 'Variance', exact: true }).click()],
   ['Report', async (page: Page) => page.getByRole('button', { name: 'Report', exact: true }).click()],
-  ['How to count', async (page: Page) => page.getByRole('button', { name: 'How to count' }).click()],
+  ['How to count', async (page: Page) => page.getByRole('button', { name: 'Help', exact: true }).click()],
 ] as const) {
   test(`Home is reachable from ${screen}, and the Session is untouched`, async ({ page }) => {
     await loadAndCount(page);

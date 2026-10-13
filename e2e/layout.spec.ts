@@ -55,6 +55,6 @@ test('every screen fits 320 px with large enough tap targets and input text', as
   await checkScreen(page, 'guard confirm');
   await page.getByRole('button', { name: 'Keep counting' }).click();
 
-  await page.getByRole('button', { name: 'How to count' }).click();
+  await page.getByRole('button', { name: 'Help', exact: true }).click();
   await checkScreen(page, 'how to count');
 });
