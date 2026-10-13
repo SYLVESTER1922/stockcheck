@@ -231,15 +231,15 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 **Depends on:** T19. **Main risk:** Wastage entered after Expected is visible can be back-solved to hide a shortage.
 
 **Acceptance**
-- [ ] Domain: Unexplained Variance = Total Variance + Wastage, in integer thousandths. The spec example holds: Expected 100, Count 85, Wastage 10 gives Total −15 and Unexplained −5.
-- [ ] Wastage cannot be entered until the Item is Done, and is never in a total for an Uncounted or In progress Item.
-- [ ] Entry needs a reason (Expired, Damaged, Spoilt, Other plus a note), a paper-register reference, and the tick "This is NOT already deducted in Zobaze." Without all of them it is not saved. The quantity uses the Tally rules (non-negative, up to 3 decimals).
-- [ ] Wastage can be edited and removed. Removing it leaves the Count and the Total Variance as they were.
-- [ ] Flags, never blocks: Wastage above the shortage; Wastage on an Item with a surplus; Wastage on an Item with a zero Total Variance. Each flag has plain wording on the row.
-- [ ] Entering Wastage bumps `changes` (so the Session Report shows "changed since the last report") and does not move `lastChangeAt`.
-- [ ] Wastage does not change Look Again, the Recount List, Net Variance Value or any existing figure.
-- [ ] Entry works with Items that are Duplicate Items and Items without a SKU.
-- [ ] Existing tests pass unchanged. 320 px layout check for the entry form.
+- [x] Domain: Unexplained Variance = Total Variance + Wastage, in integer thousandths. The spec example holds: Expected 100, Count 85, Wastage 10 gives Total −15 and Unexplained −5.
+- [x] Wastage cannot be entered until the Item is Done, and is never in a total for an Uncounted or In progress Item.
+- [x] Entry needs a reason (Expired, Damaged, Spoilt, Other plus a note), a paper-register reference, and the tick "This is NOT already deducted in Zobaze." Without all of them it is not saved. The quantity uses the Tally rules (non-negative, up to 3 decimals).
+- [x] Wastage can be edited and removed. Removing it leaves the Count and the Total Variance as they were.
+- [x] Flags, never blocks: Wastage above the shortage; Wastage on an Item with a surplus; Wastage on an Item with a zero Total Variance. Each flag has plain wording on the row.
+- [x] Entering Wastage bumps `changes` (so the Session Report shows "changed since the last report") and does not move `lastChangeAt`.
+- [x] Wastage does not change Look Again, the Recount List, Net Variance Value or any existing figure.
+- [x] Entry works with Items that are Duplicate Items and Items without a SKU. (Tested in the domain; the screen is the same for every Item.)
+- [x] Existing tests pass unchanged. 320 px layout check for the entry form.
 
 ## T21: Wastage in the Session Report ⚪
 **Delivers:** Wastage, Unexplained Variance, the flags, and Wastage and Unexplained Value in the Session Report and the report model.

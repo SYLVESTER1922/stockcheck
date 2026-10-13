@@ -44,7 +44,7 @@ describe('new Session fields', () => {
 
   it('keep what a newer Session already holds', () => {
     const adjustments = { a1: { itemKey: item.key, status: 'Held' as const, supplierDocument: '', linkedTo: null, log: [] } };
-    const wastage = { [item.key]: { quantity: 2_000, reason: 'Expired' as const, note: '', register: 'R-1', at: AT } };
+    const wastage = { [item.key]: { quantity: 2_000, reason: 'Expired' as const, note: '', register: 'R-1', notDeductedConfirmed: true as const, at: AT } };
     const next = withSessionDefaults({ ...OLD_SHAPE, wastage, adjustments, adjustmentChanges: 4, adjustmentsReportedChanges: 3 });
     expect(next).toMatchObject({ wastage, adjustments, adjustmentChanges: 4, adjustmentsReportedChanges: 3 });
   });

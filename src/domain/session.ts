@@ -10,6 +10,8 @@ export type WastageEntry = {
   note: string;
   /** Paper-register reference. */
   register: string;
+  /** The Counter ticked "This is NOT already deducted in Zobaze". Always true: it is not saved without the tick. */
+  notDeductedConfirmed: true;
   /** ISO time it was entered. */
   at: string;
 };
@@ -153,11 +155,32 @@ export function lineFor(session: Session, item: Item): Line {
 function setTallies(session: Session, item: Item, tallies: number[], at: string): Session {
   const { [item.key]: _removed, ...otherTallies } = session.tallies;
   const { [item.key]: _wasFinished, ...otherFinished } = session.finished;
+  // Done is removed with the last Tally, and the live Wastage goes with it (ADR 0007).
+  const { [item.key]: _wastage, ...otherWastage } = session.wastage;
   const next =
     tallies.length > 0
       ? { ...session, tallies: { ...session.tallies, [item.key]: tallies } }
-      : { ...session, tallies: otherTallies, finished: otherFinished };
+      : { ...session, tallies: otherTallies, finished: otherFinished, wastage: otherWastage };
   return recordLookAgain(touched(next, at), item);
+}
+
+/**
+ * Wastage changes the Session Report, so the Session counts as changed since its last report, but
+ * counting did not happen, so `lastChangeAt` ("Counting finished") stays where it was (ADR 0007).
+ */
+const changedWithoutCounting = (session: Session): Session => ({ ...session, changes: session.changes + 1 });
+
+/** Records Wastage for a Done Item with a readable Expected. Anything else is ignored. */
+export function setWastage(session: Session, item: Item, entry: WastageEntry): Session {
+  const line = lineFor(session, item);
+  if (line.status !== 'finished' || line.variance === null) return session;
+  return changedWithoutCounting({ ...session, wastage: { ...session.wastage, [item.key]: entry } });
+}
+
+export function removeWastage(session: Session, item: Item): Session {
+  if (!(item.key in session.wastage)) return session;
+  const { [item.key]: _removed, ...others } = session.wastage;
+  return changedWithoutCounting({ ...session, wastage: others });
 }
 
 const touched = (session: Session, at: string): Session => ({ ...session, lastChangeAt: at, changes: session.changes + 1 });

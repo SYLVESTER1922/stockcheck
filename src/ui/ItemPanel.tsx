@@ -3,6 +3,7 @@ import type { Item } from '../domain/export';
 import { formatQuantity, formatUsd } from '../domain/format';
 import { addTally, editTally, finishItem, lineFor, removeTally, type Session } from '../domain/session';
 import { parseTally } from '../domain/tally';
+import { WastagePanel } from './WastagePanel';
 
 const LOOK_AGAIN_TEXT = {
   shortage: 'Check every place this item could be stored.',
@@ -120,6 +121,7 @@ export function ItemPanel({ item, session, onChange, onClose }: Props) {
               <b>Look again:</b> {LOOK_AGAIN_TEXT[line.lookAgain]}
             </p>
           )}
+          {line.variance !== null && <WastagePanel item={item} session={session} onChange={onChange} />}
         </>
       )}
       <form
