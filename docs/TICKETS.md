@@ -202,3 +202,156 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 - [ ] The browser/Android back button returns to Home, including after reopening the app mid-count.
 - [ ] Reopening the app mid-count still opens on Count. Home is shown whenever there is no Session.
 - [ ] Tests: Home reachable from every screen, Continue counts, back button, 320 px layout. Existing tests unchanged.
+
+---
+
+# Wastage and Adjustments (ADR 0007)
+
+*(Added 2026-10-13.)* The live pilot keeps running throughout. T19 is the only ticket that touches how a Session is loaded or saved, and it can go live alone. Every later ticket leaves the app working and all existing tests green, and each adds its own tests first. Netrisyl never updates Zobaze, nothing here uses the network, and the Access Switch is untouched.
+
+**Proposed batches:** [T19] · [T20, T21] · [T22, T23] · [T24] · [T25, T26] · [T27, T28]
+
+## T19: Data model and backup format 2 ⚪
+**Delivers:** the new optional Session fields, empty defaults on load and on restore, and backup format 2, with no visible change in the app.
+**Depends on:** T11. **Main risk:** a Session in progress on a phone, or an old backup, fails to load or loses data. Releasable on its own.
+
+**Acceptance**
+- [ ] `Session` gains optional `wastage`, `adjustments` (records with history) and an adjustments-change marker plus an adjustments-reported marker. Each defaults to empty.
+- [ ] `SESSION_KEY` stays `stockcheck.session.v1`.
+- [ ] Loading a saved Session without the new fields gives the empty defaults and every Count, Done, Look Again and reported marker is identical.
+- [ ] Restore applies the same defaults. `looksLikeSession` does not require the new fields, but rejects them if they are present and the wrong shape.
+- [ ] Backups are written as format 2. Format 1 backups restore unchanged. Format 3 or above is refused with the existing "newer version" message. A format 2 file shown to the format-1 reader (kept in a test as a copy of today's check) is refused with that message.
+- [ ] Round trip: backup then restore gives an identical Session, including new fields.
+- [ ] A real saved Session from `private-notes/` (counts only, not committed) loads, saves, and restores with identical Counts. The test skips cleanly where the file is absent, like `test/local/`.
+- [ ] A Session that was in progress when the new version arrives opens on Count with its Counts intact (end-to-end: seed the old shape, load the app).
+- [ ] Every existing test passes unchanged, except the one that asserts the written format number.
+
+## T20: Wastage calculation and entry ⚪
+**Delivers:** an optional Wastage entry on a Done Item, with Unexplained Variance and its flags worked out and shown on the Item's row.
+**Depends on:** T19. **Main risk:** Wastage entered after Expected is visible can be back-solved to hide a shortage.
+
+**Acceptance**
+- [ ] Domain: Unexplained Variance = Total Variance + Wastage, in integer thousandths. The spec example holds: Expected 100, Count 85, Wastage 10 gives Total −15 and Unexplained −5.
+- [ ] Wastage cannot be entered until the Item is Done, and is never in a total for an Uncounted or In progress Item.
+- [ ] Entry needs a reason (Expired, Damaged, Spoilt, Other plus a note), a paper-register reference, and the tick "This is NOT already deducted in Zobaze." Without all of them it is not saved. The quantity uses the Tally rules (non-negative, up to 3 decimals).
+- [ ] Wastage can be edited and removed. Removing it leaves the Count and the Total Variance as they were.
+- [ ] Flags, never blocks: Wastage above the shortage; Wastage on an Item with a surplus; Wastage on an Item with a zero Total Variance. Each flag has plain wording on the row.
+- [ ] Entering Wastage bumps `changes` (so the Session Report shows "changed since the last report") and does not move `lastChangeAt`.
+- [ ] Wastage does not change Look Again, the Recount List, Net Variance Value or any existing figure.
+- [ ] Entry works with Items that are Duplicate Items and Items without a SKU.
+- [ ] Existing tests pass unchanged. 320 px layout check for the entry form.
+
+## T21: Wastage in the Session Report ⚪
+**Delivers:** Wastage, Unexplained Variance, the flags, and Wastage and Unexplained Value in the Session Report and the report model.
+**Depends on:** T20. **Main risk:** moving existing columns breaks reports that are combined outside the app.
+
+**Acceptance**
+- [ ] New Variance Detail and Recount List columns go after the existing last column. No existing column moves or changes (a test pins the existing header order).
+- [ ] New columns: Wastage, Wastage reason, Register reference, Unexplained Variance (units), Wastage flags.
+- [ ] Summary: new lines Wastage Value and Unexplained Value (USD). Net Variance Value and the Recount List are unchanged for the same Counts.
+- [ ] A Session with no Wastage gives the same report as before apart from empty new columns and zero lines.
+- [ ] Rows and totals come from `buildReport`, and a test shows the screen figure for T20 equals the report to the cent.
+- [ ] Only report-content tests change.
+
+## T22: Adjustments: derivation, statuses and transitions ⚪
+**Delivers:** the domain rules for Adjustments with no screen: which Items have one, the net quantity and split, status transitions, and the log.
+**Depends on:** T20. **Main risk:** the transition rules have many edge cases, and every one must be in a test before any screen uses them.
+
+**Acceptance**
+- [ ] An Adjustment exists for every Done Item with a non-zero Total Variance and a readable Expected. Uncounted, In progress, zero-variance and unreadable-Expected Items have none. The count of Items left out is available.
+- [ ] Direction and quantity equal the Total Variance: ADD above Expected, REMOVE below. The split into documented Wastage and Unexplained is available.
+- [ ] No record means Pending. Allowed transitions only: Pending → Approved, Rejected, Held; Held → Pending, Approved, Rejected; Rejected → Pending (note required); Approved → Applied, or → Pending as a revoke (note required). Applied is final. Anything else is refused.
+- [ ] Every transition is appended to the log with an automatic timestamp and a typed name; an empty name is refused. Applied also records who applied it.
+- [ ] An ADD without a Supplier Document is Held and cannot be Approved. Adding the document lets it leave Held.
+- [ ] Approval stores a snapshot: Total Variance, quantity, direction, Wastage split and Count at that time.
+- [ ] Applied requires a prior Approval and the Applied Check tick.
+- [ ] Workflow changes bump the adjustments-change marker, never `changes`, and never `lastChangeAt`.
+- [ ] Duplicate Items and Items without a SKU get separate Adjustments keyed by Item Key.
+- [ ] Negative System Stock and blank Expected Items produce the correct delta (Expected −5, Count 0 gives ADD 5), with their existing flags carried.
+- [ ] Existing tests unchanged.
+
+## T23: Adjust tab: the list ⚪
+**Delivers:** an "Adjust" tab showing every Adjustment with its split and status, filter and search, no editing yet.
+**Depends on:** T22. **Main risk:** a fifth tab may not fit at 360 px, and a long list is slow on a cheap phone.
+
+**Acceptance**
+- [ ] Bottom nav shows Count · Variance · Adjust · Report · How to count and fits at 360 px with no clipping, tested. If it cannot fit, the list is placed inside Report instead and the test says so.
+- [ ] Each row: name and Variant, SKU, Expected, Count, Wastage, Total Variance, Unexplained Variance, ADD or REMOVE with the quantity, status. ADD/REMOVE is in words and sign; green and red are only extra.
+- [ ] Duplicate Items show `#n` and cost; Items without a SKU show name plus Variant.
+- [ ] Export date shown prominently at the top. A line says how many Items were left out and why.
+- [ ] Status filter (All, Pending, Approved, Applied, Rejected, Held) and a search by name, Variant or SKU. The list is not capped at 20.
+- [ ] Wastage flags and "count changed" markers appear on their rows.
+- [ ] Works with no Session (not shown), with zero Adjustments (plain message), and while the Access Switch is suspended.
+- [ ] A test with a 1,000-Item Session keeps the list responsive (recorded in LEARNING.md).
+- [ ] All existing tests unchanged, including the 320 px layout test; the Adjust tab has its own 320 px check.
+
+## T24: Approval and Applied flows ⚪
+**Delivers:** the screen actions for every allowed transition, with the typed name, notes, Supplier Document, and the Applied Check.
+**Depends on:** T23. **Main risk:** a record that looks like security when it is not.
+
+**Acceptance**
+- [ ] Each allowed transition is available from the row; disallowed ones are not offered.
+- [ ] Approve asks for an approver name (remembered names suggested) and takes the time from the device clock, shown but not editable. A warning shows if the name matches the Session's Counter. Approving never needs the Counter's name to differ.
+- [ ] An ADD asks for a Supplier Document; without one the row stays Held and Approve is unavailable.
+- [ ] Mark Applied needs the tick "I checked the current Zobaze balance and intervening movements", a typed name, and shows the Export date.
+- [ ] Revoke and Reject → Pending ask for a note.
+- [ ] A row's history (every transition, who, when, note) can be opened.
+- [ ] Names are remembered as suggestions only.
+- [ ] The text "a record, not security" is shown on the Approve action and in How to count (About).
+- [ ] Changes are saved and survive reload, restore and a second window.
+- [ ] Existing tests unchanged.
+
+## T25: Count changes and the review flag ⚪
+**Delivers:** what happens to Adjustments when a Count changes or Done is removed, and the two ways to clear the review flag.
+**Depends on:** T24. **Main risk:** silently changing an approval, or hiding a change after Applied.
+
+**Acceptance**
+- [ ] Count changes after Approved: it returns to Pending with a "count changed" marker, and the old Approval stays in the history.
+- [ ] Count changes after Applied: the Applied record is untouched and the row shows "count changed after Applied, review". The flag stays until one of the two actions below is done.
+- [ ] Acknowledge, no action needed: needs a typed name and a note, adds an automatic timestamp, is logged, and clears the flag.
+- [ ] Raise a correcting Adjustment: creates a NEW Adjustment linked to the Applied one, with quantity = new Total Variance minus the quantity already applied (ADD if positive, REMOVE if negative). It goes through all statuses, the Applied Check and the Supplier Document rule. The flag clears when it is raised and the link is shown on both rows. If the difference is 0, only Acknowledge is offered.
+- [ ] Done removed: Pending and Held Adjustments and the live Wastage are dropped. Approved and Applied history stays, marked "count removed", with its snapshot and Wastage split.
+- [ ] Records for an Item that is not currently Done are ignored when reading, so data left by an older version cannot show in the list or the totals.
+- [ ] Editing a Tally back to the approved value restores nothing automatically; the Adjustment stays Pending and needs approving again.
+- [ ] Existing tests unchanged.
+
+## T26: Replace-guard for Adjustments ⚪
+**Delivers:** the warning before a new Export or restore would destroy unapplied Adjustments.
+**Depends on:** T25, T27 for the download button (build the guard with the button hidden, then enable it when T27 lands). **Main risk:** a regression in the existing reported-Session guard, which has e2e coverage.
+
+**Acceptance**
+- [ ] If any Adjustment is Approved but not Applied: the same pattern as unreported Counts. The Counter can download the Adjustment Report first, or discard with a second confirmation.
+- [ ] If only Pending or Held Adjustments exist: a plain warning that they will be lost, with the same choices.
+- [ ] Applied, Rejected and nothing-to-do Sessions are not blocked.
+- [ ] Downloading the Adjustment Report clears the Approved-not-Applied block until a later workflow change. That uses the adjustments-reported marker, never the Session's `reportedChanges`.
+- [ ] Both new Export and restore take this path, and `blockingSession()` also checks the saved copy.
+- [ ] Not blocked while the Access Switch is suspended (restore stays allowed, as in ADR 0006).
+- [ ] The existing guard tests (`guard`, `guard-installed`) pass unchanged.
+
+## T27: Adjustment Report (Excel) ⚪
+**Delivers:** "Generate Adjustment Report" downloads a separate Excel file and sets only the adjustments-reported marker.
+**Depends on:** T24 (T25 for the history and flags). **Main risk:** the post-processing in `polish()` is tied to sheet numbers, and SheetJS Community cannot write colours.
+
+**Acceptance**
+- [ ] A separate workbook builder and file name (`stockcheck-adjustments-<branch>-<counter>-<date>-<time>.xlsx`).
+- [ ] Sheet 1 Summary: Branch, Counter, Export file, Export date (prominent), generated time, counts by status, totals by ADD and REMOVE units and value, and the "record, not security" note.
+- [ ] Sheet 2 Adjustments: one row per Adjustment with name, Variant, SKU or Key, `#n`, Expected, Count, Wastage, Total Variance, Unexplained Variance, ADD/REMOVE, quantity, status, approver, approval date and time, Supplier Document, Applied by and time, flags, link to a correcting Adjustment.
+- [ ] Sheet 3 History: every logged transition and review action.
+- [ ] ADD/REMOVE is written in words; green and red appear through a number format (for example `[Color10]+#,##0.000;[Red]-#,##0.000`) rather than cell styling that SheetJS cannot write.
+- [ ] Quantities and money are numeric cells; bold header, frozen panes, filter, as in T15.
+- [ ] The Session Report's `reportedChanges` is not touched, and the Session Report downloaded afterward is unchanged by this.
+- [ ] Downloading works while the Access Switch is suspended.
+- [ ] The existing Session Report builder and `polish` tests pass unchanged.
+
+## T28: Cross-tab polish and documentation ⚪
+**Delivers:** consistency across screens and files, the end-to-end walkthrough, and the docs.
+**Depends on:** T21, T26, T27. **Main risk:** small inconsistencies between the Variance tab, Adjust tab and the two Excel files.
+
+**Acceptance**
+- [ ] Variance tab and Report screen show Wastage Value and Unexplained Value as new lines; Net Variance Value is unchanged.
+- [ ] A test proves the Adjust tab totals equal the Adjustment Report to the cent, and the Session Report's new lines equal the Variance tab.
+- [ ] How to count gains a short Wastage and Adjustments section, not a numbered instruction, so the "10 instructions" test is unchanged. About states Approval is a record, not security.
+- [ ] End-to-end walkthrough: count, Done, Wastage, Approve, Applied, change a Count, review flag, correcting Adjustment, Adjustment Report, restore on a second phone.
+- [ ] 320 px and 360 px layout checks for every new screen. Offline test covers the Adjust tab.
+- [ ] SPEC.md updated for the new sections; LEARNING.md records measured sizes; ADR 0007 status set to `accepted`.
+- [ ] Pilot regression: the Session Report from a fixed Session with no Wastage matches the pre-change report apart from empty new columns.
