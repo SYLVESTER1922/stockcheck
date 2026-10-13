@@ -18,8 +18,34 @@ export type WastageEntry = {
 
 export type AdjustmentStatus = 'Pending' | 'Approved' | 'Applied' | 'Rejected' | 'Held';
 
+/** What an Approval agreed to (ADR 0007). Kept in the log, so a revoked Approval stays in the history. */
+export type ApprovalSnapshot = {
+  direction: 'ADD' | 'REMOVE';
+  /** Always positive. */
+  quantity: number;
+  /** Count − Expected at the time. */
+  total: number;
+  count: number;
+  expected: number;
+  wastage: number;
+  unexplained: number;
+  supplierDocument: string;
+};
+
 /** One typed, timestamped step in an Adjustment's history (ADR 0007). */
-export type AdjustmentLogEntry = { at: string; by: string; action: string; note: string };
+export type AdjustmentLogEntry = {
+  at: string;
+  by: string;
+  /** The status moved to, or 'Supplier Document'. */
+  action: string;
+  note: string;
+  from?: AdjustmentStatus;
+  to?: AdjustmentStatus;
+  /** On a move to Approved. */
+  snapshot?: ApprovalSnapshot;
+  /** On a move to Applied: the Applied Check was ticked. */
+  appliedCheck?: true;
+};
 
 /** An Adjustment that has been acted on. An Item with no record is Pending (ADR 0007). */
 export type AdjustmentRecord = {

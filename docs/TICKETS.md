@@ -258,17 +258,17 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 **Depends on:** T20. **Main risk:** the transition rules have many edge cases, and every one must be in a test before any screen uses them.
 
 **Acceptance**
-- [ ] An Adjustment exists for every Done Item with a non-zero Total Variance and a readable Expected. Uncounted, In progress, zero-variance and unreadable-Expected Items have none. The count of Items left out is available.
-- [ ] Direction and quantity equal the Total Variance: ADD above Expected, REMOVE below. The split into documented Wastage and Unexplained is available.
-- [ ] No record means Pending. Allowed transitions only: Pending → Approved, Rejected, Held; Held → Pending, Approved, Rejected; Rejected → Pending (note required); Approved → Applied, or → Pending as a revoke (note required). Applied is final. Anything else is refused.
-- [ ] Every transition is appended to the log with an automatic timestamp and a typed name; an empty name is refused. Applied also records who applied it.
-- [ ] An ADD without a Supplier Document is Held and cannot be Approved. Adding the document lets it leave Held.
-- [ ] Approval stores a snapshot: Total Variance, quantity, direction, Wastage split and Count at that time.
-- [ ] Applied requires a prior Approval and the Applied Check tick.
-- [ ] Workflow changes bump the adjustments-change marker, never `changes`, and never `lastChangeAt`.
-- [ ] Duplicate Items and Items without a SKU get separate Adjustments keyed by Item Key.
-- [ ] Negative System Stock and blank Expected Items produce the correct delta (Expected −5, Count 0 gives ADD 5), with their existing flags carried.
-- [ ] Existing tests unchanged.
+- [x] An Adjustment exists for every Done Item with a non-zero Total Variance and a readable Expected. Uncounted, In progress, zero-variance and unreadable-Expected Items have none. The count of Items left out is available.
+- [x] Direction and quantity equal the Total Variance: ADD above Expected, REMOVE below. The split into documented Wastage and Unexplained is available.
+- [x] No record means Pending. Allowed transitions only: Pending → Approved, Rejected, Held; Held → Pending, Approved, Rejected; Rejected → Pending (note required); Approved → Applied, or → Pending as a revoke (note required). Applied is final. Anything else is refused.
+- [x] Every transition is appended to the log with an automatic timestamp and a typed name; an empty name is refused. Applied also records who applied it.
+- [x] An ADD without a Supplier Document is Held and cannot be Approved. Adding the document lets it leave Held. (This Held is derived, not stored: it shows while the stored status is Pending. A person can also set Held, which is stored.)
+- [x] Approval stores a snapshot: Total Variance, quantity, direction, Wastage split and Count at that time.
+- [x] Applied requires a prior Approval and the Applied Check tick.
+- [x] Workflow changes bump the adjustments-change marker, never `changes`, and never `lastChangeAt`.
+- [x] Duplicate Items and Items without a SKU get separate Adjustments keyed by Item Key.
+- [x] Negative System Stock and blank Expected Items produce the correct delta (Expected −5, Count 0 gives ADD 5), with their existing flags carried.
+- [x] Existing tests unchanged.
 
 ## T23: Adjust tab: the list ⚪
 **Delivers:** an "Adjust" tab showing every Adjustment with its split and status, filter and search, no editing yet.
