@@ -106,6 +106,57 @@ _Avoid_: First count, original count
 An Item's Count the first time the Counter marked it Done, before Expected was revealed. Kept even if Tallies are later edited or removed, so the Session Report shows the blind count next to the final one.
 _Avoid_: First count, original count
 
+### Adjustments
+
+**Total Variance**:
+Another name for Variance, used next to Unexplained Variance. It is Count minus Expected, and nothing in the app or the Session Report is renamed: "Variance" still means Total Variance.
+
+**Wastage**:
+A quantity of an Item that was thrown away, spoilt or damaged and was NOT already deducted in Zobaze. Optional, entered per Item after it is Done, never before. It needs a reason (Expired, Damaged, Spoilt, or Other with a note), a paper-register reference, and a tick confirming it is not already deducted in Zobaze. Zero or more, with up to 3 decimal places, like a Tally.
+_Avoid_: Loss, shrinkage (those are the Variance), write-off
+
+**Unexplained Variance**:
+Total Variance plus Wastage. Example: Expected 100, Count 85, Wastage 10 gives Total Variance −15 and Unexplained Variance −5. It is what is left after documented Wastage. An Item with Unexplained Variance of 0 is fully accounted for.
+_Avoid_: Real shortage, true variance
+
+**Wastage Flag**:
+A note shown, never a block, when Wastage is larger than the shortage, or is entered on an Item with a surplus or a zero Total Variance. These need a manager's attention because Wastage would make the gap bigger, or explain a gap that is not there. Shown in the Adjustment list and in the Session Report.
+
+**Adjustment**:
+A recommendation to correct one Item's balance in Zobaze by hand. It exists for every Done Item with a non-zero Total Variance, and its quantity equals the Total Variance: ADD when the Count is above Expected, REMOVE when below. It is one net quantity, because that is what staff type into Zobaze. The Wastage and Unexplained parts are shown beside it so staff can put them in Zobaze's note field. Netrisyl never changes Zobaze: staff make the change themselves and then mark the Adjustment Applied.
+_Avoid_: Correction, fix, stock update
+
+**Adjustment Status**:
+One of Pending, Approved, Applied, Rejected or Held. An Item with no record is Pending. The only moves allowed:
+- Pending → Approved, Rejected or Held.
+- Held → Pending, Approved or Rejected.
+- Rejected → Pending (needs a note).
+- Approved → Applied, or back to Pending (a revoke, needs a note).
+- Applied is final. A mistake is fixed by a new, correcting Adjustment.
+
+Applied requires Approved first. Every move is logged with a timestamp and a typed name.
+_Avoid_: State, stage
+
+**Supplier Document**:
+The invoice or delivery note number that supports an ADD Adjustment. An ADD without one is Held and cannot be Approved, so a surplus that nobody can explain is never added to Zobaze silently.
+
+**Approval**:
+A manager's recorded agreement that an Adjustment should be made in Zobaze. It stores the approver's typed name, the date and time from the phone's clock (not editable), and a snapshot of the quantities approved. It is a record, not security: anyone holding the phone can type a name, and a Backup can be edited. A warning shows if the approver's name matches the Session's Counter.
+_Avoid_: Sign-off, authorisation
+
+**Changed Count**:
+An Item's Count changing after its Adjustment was Approved. The Approval goes back to Pending with a "count changed" marker and the old Approval stays in the history. An Applied Adjustment is never changed: it gets a visible "count changed after Applied, review" flag instead, which stays until management either acknowledges it or raises a Correcting Adjustment. If the Item's Done is removed, its Pending and Held Adjustments and its live Wastage are dropped, and its Approved and Applied history (with the Approval snapshots and Wastage split) is kept, marked "count removed".
+
+**Correcting Adjustment**:
+A new Adjustment linked to an Applied one, raised when the Count changed after Applied. Its quantity is the new Total Variance minus the quantity already applied. It goes through the same statuses, Applied Check and Supplier Document rule as any Adjustment. The Applied record is never edited.
+
+**Applied Check**:
+The tick required to mark an Adjustment Applied: "I checked the current Zobaze balance and intervening movements." The Export date is shown prominently on the Adjust tab and in the Adjustment Report, because the quantity is a difference measured against that Export.
+
+**Adjustment Report**:
+The separate Excel file listing every Adjustment with its status, split and history. It does not make the Session a Reported Session, and it has its own marker. Approved Adjustments that are not yet Applied are guarded the way unreported Counts are before a new Export is loaded.
+_Avoid_: Session Report (that one is about Counts)
+
 ### Access
 
 **Access Switch**:
