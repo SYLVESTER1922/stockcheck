@@ -17,7 +17,7 @@ Counters find Variances that are partly explained by known Wastage (expired, dam
 ### Wastage entry
 - Optional, only after the Item is Done (Expected is visible by then, so Wastage could be back-solved to hide a shortage; the safeguards below are the answer to that).
 - Requires a reason (Expired, Damaged, Spoilt, Other + note), a paper-register reference, and a tick: "This is NOT already deducted in Zobaze." No reason-code system.
-- **Flagged, never blocked,** when Wastage exceeds the shortage, or is entered on an Item with a surplus or a zero Total Variance. The flags show in the Adjustment list and the Session Report.
+- **Flagged, never blocked,** when Wastage covers the whole shortage exactly, exceeds the shortage, or is entered on an Item with a surplus or a zero Total Variance. The flags show in the Adjustment list and the Session Report.
 
 ### Statuses and approval
 - Statuses: Pending (no record), Approved, Applied, Rejected, Held. Allowed moves are listed in CONTEXT.md; Applied is final, and a mistake needs a new correcting Adjustment. Applied requires Approved. Every move is logged with a timestamp and a typed name, including who applied it.

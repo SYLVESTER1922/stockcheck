@@ -82,6 +82,19 @@ test('Wastage larger than the shortage is flagged, and still saved', async ({ pa
   await expect(wastage).toContainText('Unexplained+2');
 });
 
+test('Wastage that covers the whole shortage is flagged beside the Variance, and changes nothing else', async ({ page }) => {
+  await doneSugar(page, '4'); // short by 6
+  await recordWastage(page, '6');
+  const wastage = page.getByTestId('wastage');
+  await expect(wastage).toContainText('Wastage covers the whole shortage');
+  await expect(wastage).toContainText('Variance−6');
+  await expect(wastage).toContainText('Unexplained0');
+  await expect(wastage).not.toContainText('more than the shortage');
+  await expect(page.getByTestId('line')).toContainText('Variance −6');
+  await expect(page.getByTestId('line')).toContainText('−$9.00');
+  await expect(page.getByText('Check every place this item could be stored.')).toBeVisible();
+});
+
 test('Wastage on a surplus or on an Item that matches Expected is flagged', async ({ page }) => {
   await doneSugar(page, '10');
   await recordWastage(page, '1');

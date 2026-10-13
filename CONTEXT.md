@@ -120,7 +120,7 @@ Total Variance plus Wastage. Example: Expected 100, Count 85, Wastage 10 gives T
 _Avoid_: Real shortage, true variance
 
 **Wastage Flag**:
-A note shown, never a block, when Wastage is larger than the shortage, or is entered on an Item with a surplus or a zero Total Variance. These need a manager's attention because Wastage would make the gap bigger, or explain a gap that is not there. Shown in the Adjustment list and in the Session Report.
+A note shown, never a block, when Wastage covers the whole shortage or is larger than it, or is entered on an Item with a surplus or a zero Total Variance. These need a manager's attention because Wastage would make the gap bigger, or explain a gap that is not there. Shown in the Adjustment list and in the Session Report.
 
 **Adjustment**:
 A recommendation to correct one Item's balance in Zobaze by hand. It exists for every Done Item with a non-zero Total Variance, and its quantity equals the Total Variance: ADD when the Count is above Expected, REMOVE when below. It is one net quantity, because that is what staff type into Zobaze. The Wastage and Unexplained parts are shown beside it so staff can put them in Zobaze's note field. Netrisyl never changes Zobaze: staff make the change themselves and then mark the Adjustment Applied.

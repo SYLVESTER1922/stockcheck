@@ -131,9 +131,25 @@ describe('Wastage flags: shown, never a block', () => {
     expect(wastageFor(withWastage(counted(85_000), 20_000), item())).toMatchObject({ unexplained: 5_000 });
   });
 
-  it('does not flag Wastage that is less than or exactly the shortage', () => {
+  it('does not flag Wastage that is less than the shortage', () => {
     expect(flagsFor(85_000, 10_000)).toEqual([]);
-    expect(flagsFor(85_000, 15_000)).toEqual([]);
+    expect(flagsFor(85_000, 14_999)).toEqual([]);
+  });
+
+  it('flags Wastage that covers the whole shortage exactly, so Unexplained is 0', () => {
+    expect(flagsFor(85_000, 15_000)).toEqual(['covers-shortage']);
+    expect(wastageFor(withWastage(counted(85_000), 15_000), item())).toMatchObject({ unexplained: 0 });
+    expect(flagsFor(84_750, 15_250)).toEqual(['covers-shortage']); // with fractions
+  });
+
+  it('flags exactly one of covers or exceeds, never both', () => {
+    expect(flagsFor(85_000, 15_001)).toEqual(['exceeds-shortage']);
+    expect(flagsFor(85_000, 15_000)).not.toContain('exceeds-shortage');
+  });
+
+  it('does not flag it for a surplus or a match, which have their own flags', () => {
+    expect(flagsFor(105_000, 5_000)).toEqual(['on-surplus']);
+    expect(flagsFor(100_000, 0.001 * 1000)).toEqual(['on-zero-variance']);
   });
 
   it('flags Wastage on an Item with a surplus, and the gap gets bigger', () => {
@@ -178,6 +194,11 @@ describe('Wastage cannot hide a shortage', () => {
 
   it('keeps the Total Variance and the Wastage side by side, so the shortage is always visible', () => {
     expect(wastageFor(covering, item())).toMatchObject({ total: -15_000, wastage: 15_000, unexplained: 0 });
+  });
+
+  it('is flagged when it covers the whole shortage, and still saved', () => {
+    expect(wastageFor(covering, item())!.flags).toEqual(['covers-shortage']);
+    expect(covering.wastage[item().key]).toBeDefined();
   });
 
   it('is flagged as soon as it goes past the shortage', () => {

@@ -37,9 +37,10 @@ export function parseWastage(input: WastageInput, at: string): WastageResult {
 }
 
 /** Shown, never a block. Each one needs a manager's attention. */
-export type WastageFlag = 'exceeds-shortage' | 'on-surplus' | 'on-zero-variance';
+export type WastageFlag = 'covers-shortage' | 'exceeds-shortage' | 'on-surplus' | 'on-zero-variance';
 
 export const WASTAGE_FLAG_TEXT: Record<WastageFlag, string> = {
+  'covers-shortage': 'Wastage covers the whole shortage, so nothing is left unexplained. Check the register.',
   'exceeds-shortage': 'Wastage is more than the shortage, so the gap turns into a surplus. Check the register.',
   'on-surplus': 'This Item has a surplus, and Wastage makes the gap bigger. Check the count.',
   'on-zero-variance': 'This Item matches Expected, so Wastage leaves a surplus. Check the count.',
@@ -63,6 +64,7 @@ export function wastageFor(session: Session, item: Item): WastageLine | null {
 
   const total = line.variance;
   const flags: WastageFlag[] = [];
+  if (total < 0 && entry.quantity === -total) flags.push('covers-shortage');
   if (total < 0 && entry.quantity > -total) flags.push('exceeds-shortage');
   if (total > 0) flags.push('on-surplus');
   if (total === 0) flags.push('on-zero-variance');
