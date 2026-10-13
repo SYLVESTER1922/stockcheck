@@ -216,15 +216,15 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 **Depends on:** T11. **Main risk:** a Session in progress on a phone, or an old backup, fails to load or loses data. Releasable on its own.
 
 **Acceptance**
-- [ ] `Session` gains optional `wastage`, `adjustments` (records with history) and an adjustments-change marker plus an adjustments-reported marker. Each defaults to empty.
-- [ ] `SESSION_KEY` stays `stockcheck.session.v1`.
-- [ ] Loading a saved Session without the new fields gives the empty defaults and every Count, Done, Look Again and reported marker is identical.
-- [ ] Restore applies the same defaults. `looksLikeSession` does not require the new fields, but rejects them if they are present and the wrong shape.
-- [ ] Backups are written as format 2. Format 1 backups restore unchanged. Format 3 or above is refused with the existing "newer version" message. A format 2 file shown to the format-1 reader (kept in a test as a copy of today's check) is refused with that message.
-- [ ] Round trip: backup then restore gives an identical Session, including new fields.
-- [ ] A real saved Session from `private-notes/` (counts only, not committed) loads, saves, and restores with identical Counts. The test skips cleanly where the file is absent, like `test/local/`.
-- [ ] A Session that was in progress when the new version arrives opens on Count with its Counts intact (end-to-end: seed the old shape, load the app).
-- [ ] Every existing test passes unchanged, except the one that asserts the written format number.
+- [x] `Session` gains optional `wastage`, `adjustments` (records with history) and an adjustments-change marker plus an adjustments-reported marker. Each defaults to empty.
+- [x] `SESSION_KEY` stays `stockcheck.session.v1`.
+- [x] Loading a saved Session without the new fields gives the empty defaults and every Count, Done, Look Again and reported marker is identical.
+- [x] Restore applies the same defaults. `looksLikeSession` does not require the new fields, but rejects them if they are present and the wrong shape.
+- [x] Backups are written as format 2. Format 1 backups restore unchanged. Format 3 or above is refused with the existing "newer version" message. A format 2 file shown to the format-1 reader (kept in a test as a copy of today's check) is refused with that message.
+- [x] Round trip: backup then restore gives an identical Session, including new fields.
+- [ ] A real saved Session from `private-notes/saved-session.json` (counts only, not committed) loads, saves, and restores with identical Counts. The test is written (`test/local/saved-session.test.ts`) and skips where the file is absent. **Still to run:** no real saved Session exists yet; save a backup from the pilot phone, or copy the `stockcheck.session.v1` value, into that path and run `npm run test:local`.
+- [x] A Session that was in progress when the new version arrives opens on Count with its Counts intact (end-to-end: seed the old shape, load the app).
+- [x] Every existing test passes unchanged, except the two that assert the format number (written 1 → 2; the "newer format" example 2 → 3).
 
 ## T20: Wastage calculation and entry ⚪
 **Delivers:** an optional Wastage entry on a Done Item, with Unexplained Variance and its flags worked out and shown on the Item's row.

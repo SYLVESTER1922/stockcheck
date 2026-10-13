@@ -1,4 +1,4 @@
-import type { Session } from '../domain/session';
+import { withSessionDefaults, type Session } from '../domain/session';
 
 // One JSON document in this origin's localStorage (ADR 0002). Bump the version if the shape changes.
 // Shared by every copy of the app on this device (installed app, browser tabs, windows).
@@ -10,7 +10,7 @@ export function loadSession(): Session | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     // Sessions saved before a field existed get its empty default.
-    return { lastChangeAt: null, changes: 0, reportedChanges: null, finished: {}, countAtDone: {}, countAtLookAgain: {}, ...(JSON.parse(raw) as Partial<Session>) } as Session;
+    return withSessionDefaults(JSON.parse(raw) as Partial<Session>);
   } catch {
     return null;
   }

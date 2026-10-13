@@ -2,6 +2,33 @@ import type { Item } from './export';
 import { isLarge, LOOK_AGAIN } from './large';
 import { varianceValue } from './money';
 
+/** Documented Wastage for one Item, entered after Done (CONTEXT: Wastage; ADR 0007). */
+export type WastageEntry = {
+  /** Thousandths of a unit, zero or more. */
+  quantity: number;
+  reason: 'Expired' | 'Damaged' | 'Spoilt' | 'Other';
+  note: string;
+  /** Paper-register reference. */
+  register: string;
+  /** ISO time it was entered. */
+  at: string;
+};
+
+export type AdjustmentStatus = 'Pending' | 'Approved' | 'Applied' | 'Rejected' | 'Held';
+
+/** One typed, timestamped step in an Adjustment's history (ADR 0007). */
+export type AdjustmentLogEntry = { at: string; by: string; action: string; note: string };
+
+/** An Adjustment that has been acted on. An Item with no record is Pending (ADR 0007). */
+export type AdjustmentRecord = {
+  itemKey: string;
+  status: AdjustmentStatus;
+  supplierDocument: string;
+  /** The id of the Applied Adjustment this one corrects; null otherwise. */
+  linkedTo: string | null;
+  log: AdjustmentLogEntry[];
+};
+
 /** One Export plus the Tallies entered against it (CONTEXT: Session; ADR 0003, 0004). */
 export type Session = {
   exportFileName: string;
@@ -22,6 +49,14 @@ export type Session = {
   countAtDone: Record<string, number>;
   /** Count (thousandths) when Look Again first fired. Never overwritten or cleared. */
   countAtLookAgain: Record<string, number>;
+  /** Wastage by Item Key (ADR 0007). Added after the pilot began: absent in older saves. */
+  wastage: Record<string, WastageEntry>;
+  /** Adjustment records by id (ADR 0007). Absent in older saves. */
+  adjustments: Record<string, AdjustmentRecord>;
+  /** Bumped on every Adjustment workflow change; never moves `changes` or `lastChangeAt`. */
+  adjustmentChanges: number;
+  /** The `adjustmentChanges` value the last Adjustment Report covered; null if never downloaded. */
+  adjustmentsReportedChanges: number | null;
 };
 
 export type Line =
@@ -49,7 +84,27 @@ export function newSession(exportFileName: string, loadedAt: string, items: Item
     finished: {},
     countAtDone: {},
     countAtLookAgain: {},
+    ...NEW_FIELDS(),
   };
+}
+
+const NEW_FIELDS = () => ({ wastage: {}, adjustments: {}, adjustmentChanges: 0, adjustmentsReportedChanges: null });
+
+/**
+ * A saved or restored Session may lack fields added since it was written; they get their empty
+ * default and everything else is kept as it was. Used by loading and by restoring (ADR 0007).
+ */
+export function withSessionDefaults(saved: Partial<Session>): Session {
+  return {
+    lastChangeAt: null,
+    changes: 0,
+    reportedChanges: null,
+    finished: {},
+    countAtDone: {},
+    countAtLookAgain: {},
+    ...NEW_FIELDS(),
+    ...saved,
+  } as Session;
 }
 
 /** Another place: add a Tally. Done = addTally (if typed) + finishItem. */

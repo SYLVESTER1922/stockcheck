@@ -33,7 +33,7 @@ describe('Backup', () => {
   it('marks the file as a StockCheck backup with a format version', () => {
     expect(JSON.parse(toBackup(counted([makeItem(1)]), { savedAt: AT }))).toMatchObject({
       app: 'stockcheck',
-      format: 1,
+      format: 2,
       savedAt: AT,
     });
   });
@@ -43,7 +43,7 @@ describe('Backup', () => {
     ['another app', JSON.stringify({ app: 'other', format: 1, session: {} }), 'That file is not a StockCheck backup.'],
     [
       'a newer format',
-      JSON.stringify({ app: 'stockcheck', format: 2, session: {} }),
+      JSON.stringify({ app: 'stockcheck', format: 3, session: {} }),
       'That backup was made by a newer version of StockCheck. Update the app, then try again.',
     ],
     [
