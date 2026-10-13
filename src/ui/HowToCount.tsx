@@ -17,7 +17,11 @@ export function HowToCount({ onBack }: { onBack: () => void }) {
       </ol>
       <div data-testid="about-adjustments" className="mt-6 border-t border-slate-200 pt-4 text-sm">
         <h3 className="font-semibold">Wastage and Adjustments</h3>
-        <p className="mt-1">
+        <p className="mt-1" data-testid="about-wastage">
+          Wastage is optional. After an Item is Done, you can record what was thrown away and not yet deducted in Zobaze, with a reason and the
+          paper-register number. It never changes the Variance: the Unexplained Variance is shown beside it.
+        </p>
+        <p className="mt-2">
           The Adjust tab lists what to correct in Zobaze. StockCheck never changes Zobaze: staff make each change by hand, then
           mark the Adjustment Applied.
         </p>

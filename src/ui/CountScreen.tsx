@@ -42,7 +42,7 @@ export function CountScreen({ session, importInfo, onChange, onNewExport }: Prop
             <p className="truncate text-slate-500">{session.exportFileName}</p>
             {counting && warnings.length > 0 && (
               <details className="mt-1 text-amber-900">
-                <summary className="cursor-pointer">⚠ {warnings.length === 1 ? '1 warning' : `${warnings.length} warnings`}</summary>
+                <summary className="flex min-h-11 cursor-pointer items-center">⚠ {warnings.length === 1 ? '1 warning' : `${warnings.length} warnings`}</summary>
                 {warnings.map((message) => (
                   <p key={message} className="mt-1">
                     {message}

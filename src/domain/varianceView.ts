@@ -16,6 +16,8 @@ export function varianceView(report: Report) {
     },
     inProgress: s.inProgress,
     note: s.note,
+    /** Only when the Session has Wastage (ADR 0007): a Session without it looks exactly as before. */
+    wastage: s.wastageItems > 0 ? { items: s.wastageItems, value: s.wastageValue, unexplained: s.unexplainedValue } : null,
   };
 }
 

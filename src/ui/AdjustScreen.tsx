@@ -5,7 +5,7 @@ import { acknowledge, raiseCorrection, setSupplierDocument, transition, type Adj
 import { formatLocalTime, formatQuantity, formatUsd, signedQuantity, signedUsd } from '../domain/format';
 import { setCounter, type AdjustmentStatus, type Session } from '../domain/session';
 import { WASTAGE_FLAG_TEXT } from '../domain/wastage';
-import { adjustmentReportFileName, buildAdjustmentReport } from '../domain/adjustmentReport';
+import { adjustmentReportFileName, adjustmentTotals, buildAdjustmentReport } from '../domain/adjustmentReport';
 import { isAdjustmentsReported } from '../domain/replaceGuard';
 import { download } from './download';
 import { loadApprovers, loadNames, rememberApprover, rememberNames } from './storage';
@@ -43,6 +43,7 @@ type ScreenProps = {
 export function AdjustScreen({ session, onChange, onReported, onCounter, openReport = false }: ScreenProps) {
   const view = useMemo(() => adjustView(session), [session]);
   const counts = useMemo(() => statusCounts(view.list), [view]);
+  const totals = useMemo(() => adjustmentTotals(view.list), [view]);
   const [filter, setFilter] = useState<StatusFilter>('All');
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(PAGE);
@@ -101,6 +102,20 @@ export function AdjustScreen({ session, onChange, onReported, onCounter, openRep
       )}
 
       <ReportCard session={session} empty={view.list.length === 0} open={openReport} onReported={onReported} onCounter={onCounter} />
+
+      {view.list.length > 0 && (
+        <div data-testid="adjust-totals" className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800">
+          <p className="font-semibold">Totals</p>
+          <ul className="mt-1 space-y-1 tabular-nums">
+            {([['ADD', totals.add], ['REMOVE', totals.remove], ['Net', totals.net]] as const).map(([label, t]) => (
+              <li key={label} data-testid={`total-${label.toLowerCase()}`}>
+                {label}: {t.adjustments} {t.adjustments === 1 ? 'Adjustment' : 'Adjustments'} · {signedQuantity(t.units)} units · <span className="whitespace-nowrap">{signedUsd(t.value)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-xs text-slate-600">Rejected Adjustments and history-only rows are not included.</p>
+        </div>
+      )}
 
       {view.needsReview > 0 && (
         <p data-testid="needs-review" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">

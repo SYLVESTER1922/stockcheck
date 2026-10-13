@@ -87,19 +87,26 @@ export const ADJUSTMENT_REPORT_NOTE =
   'quantities are measured against the Export loaded above. Approved by and Applied by are a record, not security: names are typed on a phone, ' +
   "times come from the phone's clock, and a backup file can be edited.";
 
+/**
+ * Totals by action, in units and value at cost. Rejected and history-only rows are not included.
+ * One function for the Adjust tab and the Adjustment Report, so they cannot disagree.
+ */
+export function adjustmentTotals(list: Adjustment[]): AdjustmentReportSummary['totals'] {
+  const counted = list.filter((a) => a.gone === null && a.status !== 'Rejected');
+  const totals = (of: Adjustment[]): ActionTotals => ({
+    adjustments: of.length,
+    units: of.reduce((sum, a) => sum + (a.direction === 'ADD' ? a.quantity : -a.quantity), 0),
+    value: of.reduce((sum, a) => sum + a.value, 0),
+  });
+  return { add: totals(counted.filter((a) => a.direction === 'ADD')), remove: totals(counted.filter((a) => a.direction === 'REMOVE')), net: totals(counted) };
+}
+
 export function buildAdjustmentReport(session: Session, meta: AdjustmentReportMeta): AdjustmentReport {
   const view = adjustView(session);
   const rows = view.list.map(toRow);
   const live = rows.filter((r) => !r.historyOnly);
   const byStatus: Record<AdjustmentStatus, number> = { Pending: 0, Approved: 0, Applied: 0, Rejected: 0, Held: 0 };
   for (const r of live) byStatus[r.status]++;
-
-  const totalsOf = (list: AdjustmentReportRow[]): ActionTotals => ({
-    adjustments: list.length,
-    units: list.reduce((sum, r) => sum + r.quantity, 0),
-    value: list.reduce((sum, r) => sum + r.value, 0),
-  });
-  const counted = live.filter((r) => r.status !== 'Rejected');
 
   return {
     summary: {
@@ -111,7 +118,7 @@ export function buildAdjustmentReport(session: Session, meta: AdjustmentReportMe
       byStatus,
       historyOnly: rows.length - live.length,
       needsReview: view.needsReview,
-      totals: { add: totalsOf(counted.filter((r) => r.action === 'ADD')), remove: totalsOf(counted.filter((r) => r.action === 'REMOVE')), net: totalsOf(counted) },
+      totals: adjustmentTotals(view.list),
       note: ADJUSTMENT_REPORT_NOTE,
     },
     rows,

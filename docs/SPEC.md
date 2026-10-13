@@ -14,7 +14,7 @@ Branches of a retailer on Zobaze POS need to compare physical stock with what Zo
 
 ## 3. v1 scope
 
-**In:** load Export → search → enter Tallies → live Variance with Look Again → Session Report (Excel) → reported-Session reload guard → How to count screen → Backup/restore → installable offline PWA on GitHub Pages.
+**In:** load Export → search → enter Tallies → live Variance with Look Again → Session Report (Excel) → reported-Session reload guard → How to count screen → Backup/restore → installable offline PWA on GitHub Pages. Added by ADR 0007: optional Wastage per Item, an Adjust tab (recommended corrections to make in Zobaze by hand, with approval and Applied records), a separate Adjustment Report (Excel), and a reload guard for Adjustments (§4.13–4.15).
 
 **Out (see IDEAS.md):** unlisted Items, multi-device merge, cross-Session progress, manual column picker, text-number parsing, PDF report, pack conversion, Zobaze clean-up. Also out: +/− buttons (cut from Q18 to keep v1 small; typed Tallies only), settings screens, barcode scanning, any server or analytics, any network request after the app has loaded.
 
@@ -123,6 +123,8 @@ Branches of a retailer on Zobaze POS need to compare physical stock with what Zo
 - The Session is saved in browser storage after every change and survives a page reload.
 - A Session is **reported** when a Session Report has been downloaded and nothing has changed since. Any Tally change makes it unreported.
 - **Reload guard:** loading a new Export or restoring a Backup over a Session that has Counts and is unreported is refused. The message offers two options: "Download the report first" or "Discard this Session". Discard needs a second, explicit confirmation. A Session with no Counts, or a reported one, is replaced without asking.
+- **Adjustments are guarded the same way** (§4.14): recorded Adjustments that are not yet in a downloaded Adjustment Report stop a new Export or a restore until the Counter downloads that report or discards with a second confirmation.
+- The Session also keeps the Counter's name (optional, empty until known: asked once at the first Approval, and pre-filled on the Report screen).
 
 ### 4.9 Session Report (Excel)
 
@@ -156,9 +158,9 @@ Bold and frozen panes are added to the written file's XML after SheetJS writes i
 
 ### 4.10 Backup and restore
 
-- **Backup:** a JSON file containing the whole Session (Items as loaded, Tallies, Done marks, Count at Done, Count at Look Again, Export file name and times, reported status) plus `app: "stockcheck"` and `format: 1`. Branch and Counter are not in the Session, so they are not in the Backup; the Report screen asks for them as usual. A newer `format` is refused with "update the app". The download screen says: *"This file contains cost prices and stock values. Send it only to the manager."*
+- **Backup:** a JSON file containing the whole Session (Items as loaded, Tallies, Done marks, Count at Done, Count at Look Again, Wastage, Adjustment records with their logs, the Counter's name, Export file name and times, reported status) plus `app: "stockcheck"` and `format: 2`. Format 2 added Wastage and Adjustments (ADR 0007); the app reads formats 1 and 2, and every new field is optional and gets an empty default on load and on restore, so old Sessions and format 1 backups load unchanged. A newer `format` (and format 2 on an app that only knows 1) is refused with "update the app". Branch is not in the Session, so it is not in the Backup; the Report screen asks for it as usual. The download screen says: *"This file contains cost prices and stock values. Send it only to the manager."* It now also holds the names people typed as approvers.
 - **Restore:** replaces the current Session under the same reload guard. A file that isn't a valid StockCheck backup is refused with a clear message.
-- A test measures the real size of a counted 1,000-Item Backup: 256 KB (measured).
+- A test measures the real size of a counted 1,000-Item Backup: 256 KB (measured), and of one with Wastage on 100 Items and 300 Approvals: about 396 KB (measured, T28).
 
 ### 4.11 How to count screen
 
@@ -175,6 +177,8 @@ Reachable from the start screen before any Export is loaded, and works offline. 
 9. A shortage may be stock on the shelf under a different name or not set up in Zobaze. Check the Recount List and the paper list before treating it as a loss.
 10. *For the manager:* if an Item appears as counted in more than one report, use the latest.
 
+Below the numbered instructions, outside them (so the list stays ten), a short **Wastage and Adjustments** section says: Wastage is optional and never changes the Variance; the Adjust tab lists what to correct in Zobaze, which StockCheck never changes; and Approved by and Applied by are a record, not security. The About section (Access Switch) is unchanged.
+
 ### 4.12 Offline and install
 
 - An installable PWA (manifest and icons) with a service worker that precaches the app. After one online visit it opens and works fully offline.
@@ -187,6 +191,32 @@ Reachable from the start screen before any Export is loaded, and works offline. 
   - Offline, no check is possible: the phone keeps the version it has, and the banner appears the next time it's online.
   - Rejected: automatic update and reload (`autoUpdate`). It would interrupt typing without warning. Also rejected: no update prompt at all, which could leave a Counter on a stale version without knowing.
 - The app makes no network requests after load: client data never leaves the phone except in files the Counter downloads.
+
+### 4.13 Wastage (ADR 0007)
+
+- Optional, per Item, only after the Item is Done (Expected is shown by then). Wastage is what was thrown away and is **not already deducted in Zobaze**.
+- Needs a reason (Expired, Damaged, Spoilt, or Other with a note), the paper-register reference, and the tick "This is NOT already deducted in Zobaze". Quantity as for a Tally: more than 0, up to 3 decimal places.
+- **Unexplained Variance = Variance + Wastage.** Wastage sits beside the Variance and never replaces it: Count, Variance, Look Again, Net Variance Value and the Recount List do not read it.
+- Flagged, never blocked: Wastage that covers the whole shortage, is more than the shortage, or is entered on a surplus or on an Item that matches Expected.
+- Entering it marks the Session Report as changed since it was downloaded, without moving "Counting finished". Removing the last Tally (Done) drops the live Wastage.
+- Shown on the Variance tab and the Report screen as Wastage Value and Unexplained Value, only when there is Wastage.
+- In the Session Report: Wastage columns after the last existing column (Wastage, reason, note, register reference, Unexplained Variance, flags) and a Wastage block after the last Summary row, **only when the Session has Wastage**. Otherwise the report is identical to the one the app wrote before ADR 0007, byte for byte (tested against a baseline).
+
+### 4.14 Adjustments (ADR 0007)
+
+- The bottom navigation is Count · Variance · Adjust · Report · Help (five tabs, fitting 320 px). "Help" opens the How to count screen.
+- The **Adjust tab** lists one Adjustment for each Done Item with a Variance: ADD or REMOVE a quantity equal to the Variance, to be made in Zobaze by hand. StockCheck never changes Zobaze and has no connection to it. Each row shows Expected, Count, Wastage, Variance, Unexplained Variance, the value at cost, a status, flags and, for Duplicate Items, `#n` and cost. The Export date is shown prominently, with totals by ADD and REMOVE, a status filter with counts, and a search by name, Variant or SKU. 50 rows are drawn at a time.
+- **Statuses:** Pending, Approved, Applied, Rejected, Held. Allowed moves: Pending → Approved, Rejected or Held; Held → Pending, Approved or Rejected; Rejected → Pending (note); Approved → Applied, or back to Pending (note). Applied is final; a mistake needs a correcting Adjustment. Every move is logged with a typed name and the phone's clock time, which cannot be edited.
+- An **ADD needs a Supplier Document** (invoice or delivery note number); until it has one it shows as Held and cannot be Approved. **Marking Applied** needs the tick "I checked the current Zobaze balance and intervening movements".
+- **Approval** keeps the approver's typed name, the time, and a snapshot of what was agreed. It is **a record, not security**: anyone using the phone can type a name, and a Backup can be edited. A warning (never a block) shows if the approver has the Counter's name.
+- **Count changes:** if the Count changes after Approval, the Approval is cancelled (logged by StockCheck, with the old Approval kept in the history), and the Count tab says so beforehand. After Applied, the record is never changed: the row is flagged "Count changed after Applied: review" until a person acknowledges it or raises a **correcting Adjustment** (a new, linked Adjustment for the difference). An Applied row never disappears from view. Removing Done drops Pending and Held Adjustments and keeps Approval history as history-only rows.
+- Untouched Adjustments are derived from the Tallies and Wastage every time. Only decisions are stored.
+
+### 4.15 Adjustment Report and the reload guard for Adjustments (ADR 0007)
+
+- **Generate Adjustment Report** (Adjust tab; Branch and Counter needed, like the Session Report) downloads `stockcheck-adjustments-<branch>-<counter>-<YYYY-MM-DD>-<HHmm>.xlsx`, a file separate from the Session Report, with three sheets: **Summary** (the Export date, counts by status, totals by ADD and REMOVE, the record-not-security note), **Adjustments** (one row per Adjustment: names, Expected, Count, split, ADD/REMOVE in words with a signed quantity and value, status, approver and time, Supplier Document, who applied it and when, the Applied Check, flags, a plain-words review text, correcting links) and **Adjustment History** (every logged move). Green and red come from number formats. Quantities and money are numeric cells.
+- It has its own marker and **never marks the Session Report as reported**; the Session Report is unchanged by it.
+- **Reload guard:** only Adjustments that people recorded count (untouched ones are derived from the Counts, which the Session Report holds). Approved but not yet Applied is a block; Pending or on-hold records are a warning. Both offer "Download the Adjustment Report first" or discard with a second confirmation. Applied, Rejected and Sessions with nothing recorded are not guarded. The guard comes before the Access Switch, and the saved copy is checked as well as the window's.
 
 ## 5. Technical decisions
 

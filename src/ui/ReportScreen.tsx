@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { formatQuantity, formatUsd } from '../domain/format';
+import { formatQuantity, formatUsd, signedUsd as formatSignedUsd } from '../domain/format';
 import { backupFileName, toBackup } from '../domain/backup';
 import { buildReport, reportFileName } from '../domain/report';
 import { hasCounts, isReported, type Session } from '../domain/session';
@@ -53,6 +53,14 @@ export function ReportScreen({ session, onReported, onCounter, onRestore }: Prop
             {preview.finished} of {preview.items} items counted · {preview.uncounted} not counted
           </li>
           <li>{preview.recountItems} on the Recount List</li>
+          {preview.wastageItems > 0 && (
+            <>
+              <li data-testid="report-wastage-value">
+                Wastage Value {formatUsd(preview.wastageValue)} ({preview.wastageItems} {preview.wastageItems === 1 ? 'item' : 'items'})
+              </li>
+              <li data-testid="report-unexplained-value">Unexplained Value {formatSignedUsd(preview.unexplainedValue)}</li>
+            </>
+          )}
         </ul>
         {preview.inProgress > 0 && (
           <p className="mt-2 rounded-xl bg-amber-50 p-2 text-sm text-amber-900">

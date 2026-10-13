@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Wastage and Adjustments: recorded in the Session, applied by hand in Zobaze

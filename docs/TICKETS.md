@@ -350,10 +350,10 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 **Depends on:** T21, T26, T27. **Main risk:** small inconsistencies between the Variance tab, Adjust tab and the two Excel files.
 
 **Acceptance**
-- [ ] Variance tab and Report screen show Wastage Value and Unexplained Value as new lines; Net Variance Value is unchanged.
-- [ ] A test proves the Adjust tab totals equal the Adjustment Report to the cent, and the Session Report's new lines equal the Variance tab.
-- [ ] How to count gains a short Wastage and Adjustments section, not a numbered instruction, so the "10 instructions" test is unchanged. About states Approval is a record, not security.
-- [ ] End-to-end walkthrough: count, Done, Wastage, Approve, Applied, change a Count, review flag, correcting Adjustment, Adjustment Report, restore on a second phone.
-- [ ] 320 px and 360 px layout checks for every new screen. Offline test covers the Adjust tab.
-- [ ] SPEC.md updated for the new sections; LEARNING.md records measured sizes; ADR 0007 status set to `accepted`.
-- [ ] Pilot regression: the Session Report from a fixed Session with no Wastage matches the pre-change report apart from empty new columns.
+- [x] Variance tab and Report screen show Wastage Value and Unexplained Value as new lines, only when the Session has Wastage; Net Variance Value is unchanged.
+- [x] A test proves the Adjust tab totals equal the Adjustment Report to the cent, and the Session Report's new lines equal the Variance tab.
+- [x] How to count gains a short Wastage and Adjustments section, not a numbered instruction, so the "10 instructions" test is unchanged. About states Approval is a record, not security.
+- [x] End-to-end walkthrough: count, Done, Wastage, Approve, Applied, change a Count, review flag, correcting Adjustment, Adjustment Report, restore on a second phone.
+- [x] 320 px and 360 px layout checks for every new screen. Offline test covers the Adjust tab.
+- [x] SPEC.md updated for the new sections; LEARNING.md records measured sizes; ADR 0007 status set to `accepted`.
+- [x] Pilot regression: the Session Report from a fixed Session with no Wastage is identical to the pre-change report (no new columns at all). Confirmed against the pre-T19 commit itself: its code writes the baseline fixture byte for byte, and its unit and e2e suites run against the current source fail only where a change was intended.

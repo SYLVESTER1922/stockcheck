@@ -30,6 +30,26 @@ export function VarianceScreen({ session }: { session: Session }) {
         </p>
       </div>
 
+      {view.wastage && (
+        <div data-testid="wastage-card" className="rounded-2xl bg-white p-4 shadow-sm">
+          <h2 className="text-base font-semibold">Wastage not yet deducted in Zobaze</h2>
+          <p className="text-sm text-slate-600">
+            <span data-testid="wastage-items">{view.wastage.items}</span> {view.wastage.items === 1 ? 'item has' : 'items have'} Wastage recorded.
+          </p>
+          <dl className="mt-2 grid grid-cols-2 gap-2 text-sm tabular-nums">
+            <div className="rounded-xl bg-slate-50 p-2">
+              <dt className="text-xs text-slate-600">Wastage Value</dt>
+              <dd data-testid="wastage-value" className="whitespace-nowrap font-semibold">{formatUsd(view.wastage.value)}</dd>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-2">
+              <dt className="text-xs text-slate-600">Unexplained Value</dt>
+              <dd data-testid="unexplained-value" className={`whitespace-nowrap font-semibold ${tone(view.wastage.unexplained)}`}>{signedUsd(view.wastage.unexplained)}</dd>
+            </div>
+          </dl>
+          <p className="mt-2 text-xs text-slate-600">The net variance value above does not change. Unexplained is the Variance plus the Wastage.</p>
+        </div>
+      )}
+
       {view.inProgress > 0 && (
         <p data-testid="in-progress-line" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
           {view.inProgress} in progress (Done not tapped)
