@@ -179,9 +179,14 @@ describe('Wastage cannot hide a shortage', () => {
     expect(lineFor(covering, item())).toMatchObject({ variance: -15_000, lookAgain: 'shortage' });
   });
 
-  it('leaves the whole Session Report, totals and Recount List unchanged', () => {
+  it('leaves the Session Report, totals and Recount List unchanged apart from its own Wastage columns', () => {
     const meta = { branch: 'b', counter: 'c', generatedAt: AT };
-    expect(buildReport(covering, meta)).toEqual(buildReport(without, meta));
+    const plain = (report: ReturnType<typeof buildReport>) => {
+      const strip = (r: object) => Object.fromEntries(Object.entries(r).filter(([k]) => !k.startsWith('wastage') && !['flaggedWastageItems', 'unexplained', 'unexplainedValue'].includes(k)));
+      const { topShortages, topOverages, ...summary } = report.summary;
+      return { detail: report.detail.map(strip), recount: report.recount.map(strip), topShortages: topShortages.map(strip), topOverages: topOverages.map(strip), summary: strip(summary) };
+    };
+    expect(plain(buildReport(covering, meta))).toEqual(plain(buildReport(without, meta)));
     expect(buildReport(covering, meta).recount).toHaveLength(1);
     expect(buildReport(covering, meta).summary.netValue).toBe(-2250);
   });

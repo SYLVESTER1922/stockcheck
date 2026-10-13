@@ -246,12 +246,12 @@ A Status File (`public/status.json`) lets Netrisyl pause the start of new Sessio
 **Depends on:** T20. **Main risk:** moving existing columns breaks reports that are combined outside the app.
 
 **Acceptance**
-- [ ] New Variance Detail and Recount List columns go after the existing last column. No existing column moves or changes (a test pins the existing header order).
-- [ ] New columns: Wastage, Wastage reason, Register reference, Unexplained Variance (units), Wastage flags.
-- [ ] Summary: new lines Wastage Value and Unexplained Value (USD). Net Variance Value and the Recount List are unchanged for the same Counts.
-- [ ] A Session with no Wastage gives the same report as before apart from empty new columns and zero lines.
-- [ ] Rows and totals come from `buildReport`, and a test shows the screen figure for T20 equals the report to the cent.
-- [ ] Only report-content tests change.
+- [x] New Variance Detail and Recount List columns go after the existing last column. No existing column moves or changes (a test pins the existing header order).
+- [x] New columns: Wastage, Wastage reason, Wastage note, Register reference, Unexplained Variance (units), Wastage flags.
+- [x] Summary: a Wastage block (Items with Wastage, Items with a Wastage flag, Wastage Value, Unexplained Value) after the last existing row, so no existing row moves. Net Variance Value and the Recount List are unchanged for the same Counts.
+- [x] A Session with no Wastage gives exactly the report it always did, cell for cell: the new columns and the Wastage block appear only when the Session has Wastage. A test compares the raw sheet, style and workbook XML with a baseline captured before T21 (`test/fixtures/report-before-t21.json`, synthetic data).
+- [x] Rows and totals come from `buildReport`, and a test shows the screen figure for T20 equals the report to the cent.
+- [x] Only report-content tests change. (One T20 test, which compared whole reports, now compares them apart from the Wastage fields.)
 
 ## T22: Adjustments: derivation, statuses and transitions ⚪
 **Delivers:** the domain rules for Adjustments with no screen: which Items have one, the net quantity and split, status transitions, and the log.

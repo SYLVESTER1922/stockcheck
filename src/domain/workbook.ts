@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { parseGrid, type ExportResult } from './export';
 import type { Report, ReportRow, Status } from './report';
+import { WASTAGE_FLAG_LABEL } from './wastage';
 
 /**
  * The only module that imports SheetJS. The UI loads it on demand (dynamic import),
@@ -64,29 +65,43 @@ const DETAIL_COLUMNS: { header: string; width: number; format?: Format; value: (
   { header: 'SKU', width: 14, value: (r) => r.sku },
 ];
 
+/**
+ * ADR 0007: added AFTER the last column above, and only when the Session has Wastage, so a Session
+ * without Wastage gives exactly the report it always did. Insolex combines these reports outside the app.
+ */
+const WASTAGE_COLUMNS: typeof DETAIL_COLUMNS = [
+  { header: 'Wastage', width: 10, format: 'units', value: (r) => units(r.wastage) },
+  { header: 'Wastage reason', width: 15, value: (r) => r.wastageReason || null },
+  { header: 'Wastage note', width: 24, value: (r) => r.wastageNote || null },
+  { header: 'Register reference', width: 18, value: (r) => r.wastageRegister || null },
+  { header: 'Unexplained Variance (units)', width: 16, format: 'units', value: (r) => units(r.unexplained) },
+  { header: 'Wastage flags', width: 34, value: (r) => r.wastageFlags.map((f) => WASTAGE_FLAG_LABEL[f]).join('; ') || null },
+];
+
 /** Writes the Session Report as .xlsx (spec §4.9, T15). Quantities and money are numeric cells. */
 export function writeReport(report: Report): ArrayBuffer {
   const book = XLSX.utils.book_new();
+  const columns = report.summary.wastageItems > 0 ? [...DETAIL_COLUMNS, ...WASTAGE_COLUMNS] : DETAIL_COLUMNS;
   const summary = summarySheet(report);
   XLSX.utils.book_append_sheet(book, summary.sheet, 'Summary');
-  XLSX.utils.book_append_sheet(book, detailSheet(report.detail), 'Variance Detail');
-  XLSX.utils.book_append_sheet(book, detailSheet(report.recount), 'Recount List');
+  XLSX.utils.book_append_sheet(book, detailSheet(report.detail, columns), 'Variance Detail');
+  XLSX.utils.book_append_sheet(book, detailSheet(report.recount, columns), 'Recount List');
   const plain = XLSX.write(book, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer;
-  return polish(plain, { 1: summary.boldCells, 2: headerCells(), 3: headerCells() });
+  return polish(plain, { 1: summary.boldCells, 2: headerCells(columns), 3: headerCells(columns) });
 }
 
-function detailSheet(rows: ReportRow[]): XLSX.WorkSheet {
-  const sheet = XLSX.utils.aoa_to_sheet([DETAIL_COLUMNS.map((c) => c.header), ...rows.map((r) => DETAIL_COLUMNS.map((c) => c.value(r)))]);
-  DETAIL_COLUMNS.forEach((column, c) => {
+function detailSheet(rows: ReportRow[], columns: typeof DETAIL_COLUMNS): XLSX.WorkSheet {
+  const sheet = XLSX.utils.aoa_to_sheet([columns.map((c) => c.header), ...rows.map((r) => columns.map((c) => c.value(r)))]);
+  columns.forEach((column, c) => {
     if (!column.format) return;
     for (let r = 1; r <= rows.length; r++) setFormat(sheet, r, c, column.format);
   });
-  sheet['!cols'] = DETAIL_COLUMNS.map((c) => ({ wch: c.width }));
-  sheet['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length, c: DETAIL_COLUMNS.length - 1 } }) };
+  sheet['!cols'] = columns.map((c) => ({ wch: c.width }));
+  sheet['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length, c: columns.length - 1 } }) };
   return sheet;
 }
 
-const headerCells = () => DETAIL_COLUMNS.map((_, c) => XLSX.utils.encode_cell({ r: 0, c }));
+const headerCells = (columns: typeof DETAIL_COLUMNS) => columns.map((_, c) => XLSX.utils.encode_cell({ r: 0, c }));
 
 function summarySheet(report: Report): { sheet: XLSX.WorkSheet; boldCells: string[] } {
   const s = report.summary;
@@ -165,6 +180,16 @@ function summarySheet(report: Report): { sheet: XLSX.WorkSheet; boldCells: strin
   rows.push([s.note]);
   blank();
   rows.push(['Powered by Netrisyl Insights']);
+
+  // ADR 0007: after the last existing row, so nothing above moves; only when the Session has Wastage.
+  if (s.wastageItems > 0) {
+    blank();
+    heading('Wastage');
+    line('Items with Wastage', s.wastageItems, 'count');
+    line('Items with a Wastage flag', s.flaggedWastageItems, 'count');
+    line('Wastage Value (USD)', dollars(s.wastageValue), 'money');
+    line('Unexplained Value (USD)', dollars(s.unexplainedValue), 'money');
+  }
 
   const sheet = XLSX.utils.aoa_to_sheet(rows);
   for (const [r, c, format] of formats) setFormat(sheet, r, c, format);

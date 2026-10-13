@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import * as XLSX from 'xlsx';
 import { expect, test, type Page } from '@playwright/test';
 
 // T20, ADR 0007. tiny.xlsx: Sample Sugar has Expected 10 and a cost of $1.50.
@@ -155,3 +157,28 @@ async function checkFit(page: Page, name: string) {
   );
   expect(tiny, `${name}: fields under 16 px text`).toBe(0);
 }
+
+test('the downloaded Session Report carries the Wastage after the existing columns, only when there is Wastage', async ({ page }) => {
+  async function download() {
+    await page.getByRole('button', { name: 'Report', exact: true }).click();
+    await page.getByLabel('Branch').fill('Main Street');
+    await page.getByLabel('Counter').fill('Alex');
+    const [file] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download report' }).click()]);
+    const book = XLSX.read(readFileSync((await file.path())!), { type: 'buffer' });
+    return XLSX.utils.sheet_to_json<unknown[]>(book.Sheets['Variance Detail']!, { header: 1, defval: null }) as unknown[][];
+  }
+
+  await doneSugar(page, '4'); // short by 6
+  const before = await download();
+  expect(before[0]).toHaveLength(18);
+
+  await page.getByRole('button', { name: 'Count', exact: true }).click();
+  await page.getByRole('searchbox', { name: 'Find an item' }).fill('sugar');
+  await page.getByRole('button', { name: /Sample Sugar/ }).click();
+  await recordWastage(page, '6');
+  const after = await download();
+  expect(after[0]!.slice(0, 18)).toEqual(before[0]);
+  expect(after[0]!.slice(18)).toEqual(['Wastage', 'Wastage reason', 'Wastage note', 'Register reference', 'Unexplained Variance (units)', 'Wastage flags']);
+  expect(after[1]!.slice(18)).toEqual([6, 'Expired', null, 'R-12', 0, 'Wastage covers the whole shortage']);
+  expect(after[1]!.slice(0, 18)).toEqual(before[1]);
+});

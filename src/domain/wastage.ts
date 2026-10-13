@@ -46,6 +46,14 @@ export const WASTAGE_FLAG_TEXT: Record<WastageFlag, string> = {
   'on-zero-variance': 'This Item matches Expected, so Wastage leaves a surplus. Check the count.',
 };
 
+/** Short wording for the Excel reports. */
+export const WASTAGE_FLAG_LABEL: Record<WastageFlag, string> = {
+  'covers-shortage': 'Wastage covers the whole shortage',
+  'exceeds-shortage': 'Wastage is more than the shortage',
+  'on-surplus': 'Wastage on an Item with a surplus',
+  'on-zero-variance': 'Wastage on an Item that matches Expected',
+};
+
 export type WastageLine = {
   entry: WastageEntry;
   /** Count − Expected, as everywhere else. */

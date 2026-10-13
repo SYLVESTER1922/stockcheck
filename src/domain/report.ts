@@ -2,6 +2,7 @@ import { warningCounts, warningMessages, type Item } from './export';
 import { isLarge, RECOUNT_LIST } from './large';
 import { valueAtCost } from './money';
 import { lineFor, type Session } from './session';
+import { wastageFor, type WastageFlag } from './wastage';
 
 /** The Session Report model (spec §4.9). Integers throughout: thousandths and cents. */
 export const SHORTAGE_NOTE =
@@ -33,6 +34,14 @@ export type ReportRow = {
   flags: string[];
   /** Finished with a Variance large enough for the Recount List. */
   recount: boolean;
+  /** Documented Wastage (thousandths), or null (ADR 0007). Never read by Variance or the Recount List. */
+  wastage: number | null;
+  wastageReason: string;
+  wastageNote: string;
+  wastageRegister: string;
+  wastageFlags: WastageFlag[];
+  /** Variance + Wastage. Equals the Variance where there is no Wastage; null where there is no Variance. */
+  unexplained: number | null;
 };
 
 export type ReportSummary = {
@@ -68,6 +77,13 @@ export type ReportSummary = {
   topOverages: ReportRow[];
   warnings: string[];
   note: string;
+  /** Items with documented Wastage, and how many of those carry a Wastage flag. */
+  wastageItems: number;
+  flaggedWastageItems: number;
+  /** Wastage at cost, in cents. */
+  wastageValue: number;
+  /** Unexplained Variance at cost, in cents: the sum of every row's Unexplained × cost. */
+  unexplainedValue: number;
 };
 
 export type CategoryLine = { category: string; counted: number; units: number; value: number };
@@ -121,6 +137,10 @@ export function buildReport(session: Session, meta: ReportMeta): Report {
       topOverages: overRows.slice().sort((a, b) => b.value! - a.value!).slice(0, TOP),
       warnings: [...warningMessages(warningCounts(session.items)), ...inProgressWarning(inProgress)],
       note: SHORTAGE_NOTE,
+      wastageItems: detail.filter((r) => r.wastage !== null).length,
+      flaggedWastageItems: detail.filter((r) => r.wastageFlags.length > 0).length,
+      wastageValue: sum(detail.map((r) => (r.wastage === null ? 0 : valueAtCost(r.wastage, r.cost)))),
+      unexplainedValue: sum(detail.map((r) => (r.unexplained === null ? 0 : valueAtCost(r.unexplained, r.cost)))),
     },
   };
 }
@@ -147,6 +167,7 @@ function byCategory(rows: ReportRow[]): CategoryLine[] {
 
 function toRow(session: Session, item: Item): ReportRow {
   const line = lineFor(session, item);
+  const w = wastageFor(session, item);
   const countAtLookAgain = session.countAtLookAgain[item.key] ?? null;
   const base = {
     key: item.key,
@@ -162,6 +183,12 @@ function toRow(session: Session, item: Item): ReportRow {
     cost: item.cost,
     countAtDone: session.countAtDone[item.key] ?? null,
     countAtLookAgain,
+    wastage: w?.wastage ?? null,
+    wastageReason: w?.entry.reason ?? '',
+    wastageNote: w?.entry.note ?? '',
+    wastageRegister: w?.entry.register ?? '',
+    wastageFlags: w?.flags ?? [],
+    unexplained: null as number | null,
   };
   const itemFlags = [
     ...(item.flags.includes('negative-system-stock') ? ['Negative System Stock'] : []),
@@ -188,6 +215,7 @@ function toRow(session: Session, item: Item): ReportRow {
     count: line.count,
     variance: line.variance,
     value: line.value,
+    unexplained: line.variance + (w?.wastage ?? 0),
     status,
     endedAtExpected,
     flags: [...itemFlags, ...(endedAtExpected ? ['Ended exactly at Expected'] : [])],
