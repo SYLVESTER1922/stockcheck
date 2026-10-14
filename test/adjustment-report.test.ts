@@ -457,3 +457,61 @@ describe('downloading it and the replace-guard (T26)', () => {
     expect(needsGuard(after)).toBe(true); // the Counts are not in a Session Report
   });
 });
+
+describe('readability polish (Item column and the Summary note)', () => {
+  const longName = 'Premium Long-Grain Parboiled Basmati Rice, Family Value Bag (Imported)'; // 70 characters
+  const sessionWith = (name: string): Session => {
+    const it = item('name:long|', name, 10_000, 150);
+    return finishItem(addTally(newSession('e.xlsx', AT, [it]), it, 8_000, AT), it, AT);
+  };
+  const write = (s: Session) => writeAdjustmentReport(buildAdjustmentReport(s, META2));
+  const grid = (wb: XLSX.WorkBook, name: string) => XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[name]!, { header: 1, defval: null, blankrows: true });
+  const part = (buf: ArrayBuffer, path: string) =>
+    new TextDecoder().decode(XLSX.CFB.find(XLSX.CFB.read(new Uint8Array(buf), { type: 'array' }), path)!.content as Uint8Array);
+
+  /** A column's width as Excel reads it, from the sheet's XML. */
+  const colWidth = (buf: ArrayBuffer, sheet: number, column: number) =>
+    Number(new RegExp(`<col min="${column}" max="${column}" width="([\\d.]+)"`).exec(part(buf, `/xl/worksheets/sheet${sheet}.xml`))?.[1]);
+
+  it('makes the Item column wide enough for the longest name, on the Adjustments and History sheets', () => {
+    const it0 = item('name:long|', longName, 10_000, 150);
+    const buf = write(move(sessionWith(longName), it0, 'Held'));
+    expect(colWidth(buf, 2, 1)).toBeGreaterThanOrEqual(longName.length + 1);
+    expect(colWidth(buf, 3, 2)).toBeGreaterThanOrEqual(longName.length + 1); // History: Item is the second column
+  });
+
+  it('keeps the usual width for short names, and caps an absurd one', () => {
+    const short = colWidth(write(sessionWith('Sugar')), 2, 1);
+    expect(short).toBeGreaterThanOrEqual(28);
+    expect(short).toBeLessThan(30);
+    expect(colWidth(write(sessionWith('x'.repeat(300))), 2, 1)).toBeLessThanOrEqual(81);
+  });
+
+  it('puts the Summary note in one wide merged cell that wraps, in a row tall enough to read all of it', () => {
+    const buf = write(scenario());
+    const sheet1 = part(buf, '/xl/worksheets/sheet1.xml');
+    const noteRow = grid(readClean(buf), 'Summary').findIndex((r) => String(r[0] ?? '').startsWith('StockCheck never changes Zobaze')) + 1;
+    expect(noteRow).toBeGreaterThan(1);
+    expect(sheet1).toContain(`<mergeCell ref="A${noteRow}:D${noteRow}"/>`);
+    // the row has a custom height of several lines (the note is about 450 characters in a ~114-character-wide cell)
+    const height = Number(new RegExp(`<row r="${noteRow}"[^>]* ht="([\\d.]+)"`).exec(sheet1)?.[1]);
+    expect(height).toBeGreaterThanOrEqual(15 * 4);
+    expect(sheet1).toMatch(new RegExp(`<row r="${noteRow}"[^>]* customHeight="1"`));
+    // the note cell uses a style that wraps text and aligns to the top
+    const style = Number(new RegExp(`<c r="A${noteRow}" s="(\\d+)"`).exec(sheet1)?.[1]);
+    const xfs = /<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/.exec(part(buf, '/xl/styles.xml'))![1]!.match(/<xf [\s\S]*?(?:\/>|<\/xf>)/g)!;
+    expect(xfs[style]).toContain('wrapText="1"');
+    expect(xfs[style]).toContain('vertical="top"');
+  });
+
+  it('still holds the whole note, unchanged, in that cell', () => {
+    const rows = grid(readClean(write(scenario())), 'Summary');
+    expect(rows.some((r) => r[0] === report().summary.note)).toBe(true);
+  });
+
+  it('leaves the other Summary rows, and the headings, as they were', () => {
+    const sheet1 = part(write(scenario()), '/xl/worksheets/sheet1.xml');
+    expect(sheet1).toMatch(/<c r="A1" s="\d+" t="str"><v>StockCheck Adjustment Report<\/v>/); // still bold
+    expect(sheet1.match(/<mergeCell /g)).toHaveLength(1); // only the note is merged
+  });
+});

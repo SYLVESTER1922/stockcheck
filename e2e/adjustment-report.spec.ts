@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import * as XLSX from 'xlsx';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { act, row } from './helpers/adjustActions';
-import { adjust, open, SMALL } from './helpers/adjustSession';
+import { adjust, open, seed, SMALL } from './helpers/adjustSession';
 
 // T27, ADR 0007. SMALL: Flour 2kg REMOVE 1, Rice #1 REMOVE 1, Rice #2 ADD 2 (Held), Cooking Oil ADD 3 (Held), Soap ADD 5 (Held).
 const SEEDED = { ...SMALL, counter: 'Alex Moyo' };
@@ -264,3 +264,21 @@ for (const width of [360, 320]) {
     expect(problems).toEqual([]);
   });
 }
+
+test('in the downloaded file, long Item names fit column A and the note wraps in one merged cell', async ({ page }) => {
+  const longName = 'Premium Long-Grain Parboiled Basmati Rice, Family Value Bag (Imported)';
+  await open(page, seed([{ key: 'name:long|', name: longName, expected: 10_000, cost: 150, count: 8_000 }]));
+  const file = await generate(page, 'Main Street', 'Alex');
+  const zip = XLSX.CFB.read(readFileSync((await file.path())!), { type: 'buffer' });
+  const part = (p: string) => new TextDecoder().decode(XLSX.CFB.find(zip, p)!.content as Uint8Array);
+
+  const width = Number(/<col min="1" max="1" width="([\d.]+)"/.exec(part('/xl/worksheets/sheet2.xml'))?.[1]);
+  expect(width).toBeGreaterThanOrEqual(longName.length + 1);
+
+  const summary = part('/xl/worksheets/sheet1.xml');
+  const merge = /<mergeCell ref="A(\d+):D(\d+)"\/>/.exec(summary);
+  expect(merge?.[1]).toBe(merge?.[2]); // one row, four columns wide
+  const row = merge![1]!;
+  expect(summary).toMatch(new RegExp(`<row r="${row}"[^>]* customHeight="1"`));
+  expect(summary).toContain('a record, not security'); // the whole note is in the file
+});

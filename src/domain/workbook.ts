@@ -312,10 +312,45 @@ export function writeAdjustmentReport(report: AdjustmentReport): ArrayBuffer {
     XLSX.utils.book_append_sheet(book, summary.sheet, 'Summary');
     XLSX.utils.book_append_sheet(book, tableSheet(report.rows, ADJUSTMENT_COLUMNS), 'Adjustments');
     XLSX.utils.book_append_sheet(book, tableSheet(report.history, HISTORY_COLUMNS), 'Adjustment History');
+    // Item names must show: the Item column is as wide as the longest name (within limits).
+    book.Sheets['Adjustments']!['!cols']![0] = { wch: itemColumnWidth(report.rows.map((r) => r.name)) };
+    book.Sheets['Adjustment History']!['!cols']![1] = { wch: itemColumnWidth(report.history.map((h) => h.name)) };
     const plain = XLSX.write(book, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer;
     const headers = (count: number) => Array.from({ length: count }, (_, c) => XLSX.utils.encode_cell({ r: 0, c }));
-    return polish(plain, { 1: summary.boldCells, 2: headers(ADJUSTMENT_COLUMNS.length), 3: headers(HISTORY_COLUMNS.length) });
+    const polished = polish(plain, { 1: summary.boldCells, 2: headers(ADJUSTMENT_COLUMNS.length), 3: headers(HISTORY_COLUMNS.length) });
+    return wrapCells(polished, { 1: [summary.noteCell] });
   });
+}
+
+const ITEM_COLUMN = { min: 28, max: 80 };
+/** Wide enough for the longest Item name, never narrower than the usual column and never absurd. */
+const itemColumnWidth = (names: string[]) => Math.min(ITEM_COLUMN.max, Math.max(ITEM_COLUMN.min, ...names.map((n) => n.length + 2)));
+
+/**
+ * SheetJS Community cannot write text wrapping, so, like the bold headings, it is added to the finished
+ * file's XML: one cell style that wraps and aligns to the top, applied to the given cells (by sheet number).
+ * Runs after `polish`, which is not changed.
+ */
+function wrapCells(data: ArrayBuffer, cells: Record<number, string[]>): ArrayBuffer {
+  const zip = XLSX.CFB.read(new Uint8Array(data), { type: 'array' });
+  const read = (path: string) => new TextDecoder().decode(XLSX.CFB.find(zip, path)!.content as Uint8Array);
+  const put = (path: string, xml: string) => {
+    const entry = XLSX.CFB.find(zip, path)!;
+    entry.content = new TextEncoder().encode(xml) as typeof entry.content;
+  };
+  let styles = read('/xl/styles.xml');
+  const xfCount = Number(/<cellXfs count="(\d+)"/.exec(styles)![1]);
+  styles = styles
+    .replace(/<cellXfs count="\d+">/, `<cellXfs count="${xfCount + 1}">`)
+    .replace('</cellXfs>', '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs>');
+  put('/xl/styles.xml', styles);
+  for (const [index, refs] of Object.entries(cells)) {
+    const path = `/xl/worksheets/sheet${index}.xml`;
+    let sheet = read(path);
+    for (const ref of refs) sheet = sheet.replace(new RegExp(`<c r="${ref}"(?![^>]* s=)`), `<c r="${ref}" s="${xfCount}"`);
+    put(path, sheet);
+  }
+  return XLSX.CFB.write(zip, { fileType: 'zip', type: 'array' }) as ArrayBuffer;
 }
 
 /**
@@ -350,7 +385,7 @@ function setAdjFormat(sheet: XLSX.WorkSheet, r: number, c: number, format: AdjFo
   if (cell?.t === 'n') cell.z = ADJ_FMT[format];
 }
 
-function adjustmentSummarySheet(report: AdjustmentReport): { sheet: XLSX.WorkSheet; boldCells: string[] } {
+function adjustmentSummarySheet(report: AdjustmentReport): { sheet: XLSX.WorkSheet; boldCells: string[]; noteCell: string } {
   const s = report.summary;
   const rows: unknown[][] = [];
   const formats: [number, number, AdjFormat][] = [];
@@ -393,12 +428,20 @@ function adjustmentSummarySheet(report: AdjustmentReport): { sheet: XLSX.WorkShe
   blank();
 
   heading('Note');
+  const noteRow = rows.length;
   rows.push([s.note]);
   blank();
   rows.push(['Powered by Netrisyl Insights']);
 
   const sheet = XLSX.utils.aoa_to_sheet(rows);
   for (const [r, c, format] of formats) setAdjFormat(sheet, r, c, format);
-  sheet['!cols'] = [{ wch: 58 }, { wch: 22 }, { wch: 17 }, { wch: 17 }];
-  return { sheet, boldCells: bold };
+  const widths = [58, 22, 17, 17];
+  sheet['!cols'] = widths.map((wch) => ({ wch }));
+  // The note is one wide merged cell across A to D that wraps, in a row tall enough for all of it
+  // (Excel does not size merged cells by itself): about 90% of the width fits per line, 15 points a line.
+  sheet['!merges'] = [{ s: { r: noteRow, c: 0 }, e: { r: noteRow, c: widths.length - 1 } }];
+  const lines = Math.ceil(s.note.length / (widths.reduce((a, b) => a + b, 0) * 0.9));
+  sheet['!rows'] = [];
+  sheet['!rows'][noteRow] = { hpt: lines * 15 + 4 };
+  return { sheet, boldCells: bold, noteCell: XLSX.utils.encode_cell({ r: noteRow, c: 0 }) };
 }
