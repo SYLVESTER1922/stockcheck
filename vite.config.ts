@@ -56,6 +56,7 @@ export default defineConfig({
     }),
   ],
   test: {
+    globalSetup: ['./test/helpers/timezone.ts'],
     include: ['test/**/*.test.ts'],
     exclude: ['test/local/**', 'node_modules/**'],
   },

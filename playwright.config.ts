@@ -8,7 +8,8 @@ const ENABLED = JSON.stringify({ newSessions: 'enabled', message: '' });
 
 export default defineConfig({
   testDir: 'e2e',
-  use: { baseURL: 'http://localhost:4173', ...devices['Pixel 7'] },
+  // A fixed timezone, so times shown as local text (seeded in UTC) read the same on every machine and in CI.
+  use: { baseURL: 'http://localhost:4173', timezoneId: 'America/New_York', ...devices['Pixel 7'] },
   projects: [{ name: 'chromium' }],
   webServer: {
     command: [
