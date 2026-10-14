@@ -6,9 +6,10 @@ Needs Pillow and NumPy (a dev-time tool only; the app does not depend on them).
   python3 scripts/make-icons.py --out DIR --sheet            # both backgrounds plus a preview sheet
 
 Only the badge is used, never the whole wide logo. In the logo the orange arrow's tail and the globe's edge
-overlap the badge's lower right, so the badge is cut out along its own octagon outline, the damaged part of
-its border is rebuilt from the (symmetric) left side, and the plain white inside is cleaned. The N and the i
-are untouched.
+overlap the badge, and its border is lit differently on each side with a hard step down the left. So the
+border is REDRAWN, not copied: one cross-section all the way round (outer rim, pale highlight, gold band,
+dark inner line) with a smooth gold-to-orange gradient from top to bottom, anti-aliased from the distance to
+the octagon's outline. Inside, everything is pure white except the N and the i, which are the original pixels.
 """
 import argparse
 import os
@@ -21,63 +22,88 @@ NAVY, WHITE = (4, 26, 71), (255, 255, 255)  # the app's --color-brand-navy; plai
 
 # The octagon outline measured on the logo (pixels), clockwise from the top-left of the flat top edge.
 OUTER = [(366, 310), (621, 310), (690, 380), (690, 637), (613, 722), (374, 722), (297, 637), (297, 381)]
-RING = 15  # border thickness
-CX = (297 + 690) / 2  # the badge's vertical axis of symmetry
-DAMAGE_FROM_Y = 585  # below this, the right-hand border is overlapped by the arrow tail
-LETTERS_BOTTOM = 630  # the N and the i end at about y = 627
-CLEAR_RIGHT_OF = 645  # right of the i nothing belongs inside the octagon
+RING = 19  # border thickness: its inner edge is where the logo's own border ends
+CX = (297 + 690) / 2
 PAD = 6  # the cut-out is cropped this far outside the octagon
+Y0, Y1 = 310, 722
+
+# Where the N, the i's stem and the i's dot are in the logo. Nothing else inside the octagon is kept
+# (the arrow's tail is: it ends below y = 612 and right of x = 634).
+GLYPHS = [(340, 392, 552, 632), (572, 460, 634, 632), (566, 374, 644, 452)]  # x0, y0, x1, y1
+HALO = 235  # inside a glyph box, near-white pixels (lowest channel at or above this) are the background: pure white
+
+# The border: colours down the cross-section, from the outer edge (d = 0) inwards. 'band' is the gold-to-orange gradient.
+GOLD, ORANGE = np.array([255, 200, 62.0]), np.array([240, 112, 8.0])
+RIM, HIGHLIGHT, DARK = np.array([214, 100, 8.0]), np.array([255, 238, 168.0]), np.array([118, 34, 4.0])
+PROFILE = [(0.0, 'rim'), (2.2, 'rim'), (3.2, 'highlight'), (4.4, 'highlight'), (6.0, 'band'), (15.0, 'band'), (16.6, 'dark'), (RING, 'dark')]
 
 
-def offset_polygon(points, d):
-    """The polygon moved inwards by d (works for a convex polygon given clockwise in image coordinates)."""
-    n, lines = len(points), []
+def inside_distance(points, xs, ys):
+    """How far inside the (convex, clockwise) polygon each point is; negative outside."""
+    d = np.full(xs.shape, np.inf)
+    n = len(points)
     for i in range(n):
         (x1, y1), (x2, y2) = points[i], points[(i + 1) % n]
         dx, dy = x2 - x1, y2 - y1
         length = (dx * dx + dy * dy) ** 0.5
-        nx, ny = -dy / length, dx / length  # for clockwise points in image coordinates this points inwards
-        lines.append(((x1 + nx * d, y1 + ny * d), (dx, dy)))
-    out = []
-    for i in range(n):
-        (p, u), (q, v) = lines[i - 1], lines[i]
-        det = u[0] * -v[1] + u[1] * v[0]
-        t = ((q[0] - p[0]) * -v[1] + (q[1] - p[1]) * v[0]) / det
-        out.append((p[0] + t * u[0], p[1] + t * u[1]))
+        d = np.minimum(d, ((xs - x1) * -dy + (ys - y1) * dx) / length)
+    return d
+
+
+def band_gradient(ys):
+    """Gold at the top, orange at the bottom, smooth in between (one gradient for the whole octagon)."""
+    t = np.clip((ys - Y0) / (Y1 - Y0), 0, 1)
+    t = t * t * (3 - 2 * t)
+    return GOLD[None, :] * (1 - t)[:, None] + ORANGE[None, :] * t[:, None]
+
+
+def border_colour(d, ys):
+    """The border's colour at distance d from the outer edge, for pixels at height ys (flat arrays)."""
+    colour = {'rim': RIM, 'highlight': HIGHLIGHT, 'dark': DARK}
+    out = np.zeros((len(d), 3))
+    band = band_gradient(ys)
+    shade = 1 + 0.04 * np.sin(np.clip((d - 6.0) / 9.0, 0, 1) * np.pi)  # a faint cylinder-like swell across the band
+    for (d0, k0), (d1, k1) in zip(PROFILE, PROFILE[1:]):
+        m = (d >= d0) & (d < d1)
+        t = ((d[m] - d0) / (d1 - d0))[:, None]
+        c0 = band[m] * shade[m][:, None] if k0 == 'band' else colour[k0][None, :]
+        c1 = band[m] * shade[m][:, None] if k1 == 'band' else colour[k1][None, :]
+        out[m] = c0 * (1 - t) + c1 * t
+    out[d < PROFILE[0][0]] = RIM
+    out[d >= RING] = DARK
+    return np.clip(out, 0, 255)
+
+
+def interior_colour(logo):
+    """Pure white everywhere except the N and the i, whose original pixels are kept (their pale halo goes white)."""
+    h, w, _ = logo.shape
+    out = np.full((h, w, 3), 255.0)
+    keep = np.zeros((h, w), bool)
+    for x0, y0, x1, y1 in GLYPHS:
+        keep[y0:y1, x0:x1] = True
+    keep &= logo.min(axis=2) < HALO
+    out[keep] = logo[keep]
     return out
 
 
-def polygon_mask(size, points, scale=4):
-    """An anti-aliased 0..1 mask of the polygon, drawn at `scale` times the size and shrunk."""
-    big = Image.new('L', (size[0] * scale, size[1] * scale), 0)
-    ImageDraw.Draw(big).polygon([(x * scale, y * scale) for x, y in points], fill=255)
-    return np.asarray(big.resize(size, Image.LANCZOS), dtype=float) / 255
-
-
 def badge():
-    """The badge as RGBA: the octagon with its border repaired, transparent outside."""
+    """The badge as RGBA: the octagon with a rebuilt border and a pure white inside, transparent outside."""
     logo = np.asarray(Image.open(LOGO).convert('RGB'), dtype=float)
     h, w, _ = logo.shape
-    size = (w, h)
-    inner_mask = polygon_mask(size, offset_polygon(OUTER, RING))
-    outer_mask = polygon_mask(size, OUTER)
     ys, xs = np.mgrid[0:h, 0:w]
+    px, py = xs + 0.5, ys + 0.5
+    d = inside_distance(OUTER, px, py)
 
-    rgb = logo.copy()
-    ring = (outer_mask > 0) & (inner_mask < 1)
-    # 1. The border below the arrow's reach, on the right half: take it from the mirror image on the left.
-    damaged_ring = ring & (xs > CX) & (ys > DAMAGE_FROM_Y)
-    mirrored = np.clip(np.round(2 * CX - xs[damaged_ring]).astype(int), 0, w - 1)
-    rgb[damaged_ring] = logo[ys[damaged_ring], mirrored]
-    # 2. The plain white inside: clear what is below the letters and to the right of the i (that is the arrow).
-    inside = inner_mask >= 1
-    clear = inside & (((ys > LETTERS_BOTTOM)) | (xs > CLEAR_RIGHT_OF))
-    rgb[clear] = 255
-    # Alpha: the octagon, shrunk by a pixel so the light fringe of the original's anti-aliasing is not carried over.
-    alpha = polygon_mask(size, offset_polygon(OUTER, 1.0))
+    rgb = interior_colour(logo)
+    near = d < RING + 1
+    ring = border_colour(d[near], py[near])
+    inner = np.clip(RING + 0.5 - d[near], 0, 1)[:, None]  # the border's inner edge, anti-aliased
+    rgb[near] = ring * inner + rgb[near] * (1 - inner)
+
+    alpha = np.clip(d + 0.5, 0, 1)  # the outer edge, anti-aliased from the distance to the outline
+    out = np.dstack([rgb, alpha * 255]).astype(np.uint8)
     x0, y0 = min(p[0] for p in OUTER) - PAD, min(p[1] for p in OUTER) - PAD
     x1, y1 = max(p[0] for p in OUTER) + PAD, max(p[1] for p in OUTER) + PAD
-    out = np.dstack([rgb, alpha * 255]).astype(np.uint8)
     return Image.fromarray(out, 'RGBA').crop((int(x0), int(y0), int(x1), int(y1)))
 
 
