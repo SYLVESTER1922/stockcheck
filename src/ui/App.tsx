@@ -153,10 +153,10 @@ export function App() {
   const showPicker = !!session && replacing === 'pick';
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 text-slate-900">
-      <Header summary={summary} onHome={isHome ? null : goHome} />
+    <div className="flex min-h-dvh flex-col bg-slate-50 pb-[calc(6rem+env(safe-area-inset-bottom))] text-slate-900">
+      <Header summary={summary} onHome={isHome ? null : goHome} onBranch={session ? () => { setReplacing('no'); setTab('report'); } : null} />
 
-      <main className="mx-auto max-w-xl px-4">
+      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4">
         <UpdateBanner />
 
         {session && suspended && replacing === 'no' && tab !== 'help' && (
@@ -277,7 +277,7 @@ type Summary = ReturnType<typeof buildReport>['summary'];
  * Sticky header: a Home arrow on every screen except Home (T18), app name and branch, and the net
  * Variance Value and progress when there is a Session.
  */
-function Header({ summary, onHome }: { summary: Summary | null; onHome: (() => void) | null }) {
+function Header({ summary, onHome, onBranch }: { summary: Summary | null; onHome: (() => void) | null; onBranch: (() => void) | null }) {
   const branch = useMemo(() => loadNames().branches[0], []);
   const progress = summary && summary.items > 0 ? Math.round((summary.finished / summary.items) * 100) : 0;
 
@@ -300,7 +300,13 @@ function Header({ summary, onHome }: { summary: Summary | null; onHome: (() => v
           )}
           <div className="min-w-0 leading-tight">
             <h1 className="text-sm font-bold text-brand-navy">StockCheck</h1>
-            <p className="truncate text-xs text-slate-500">{branch || 'No branch set'}</p>
+            {branch || !onBranch ? (
+              <p className="truncate text-xs text-slate-500">{branch || 'No branch set'}</p>
+            ) : (
+              <button onClick={onBranch} className="-my-3 flex min-h-11 max-w-full items-center text-left">
+                <span className="truncate rounded-full border border-brand-orange px-2 text-xs font-medium text-brand-navy">No branch set ›</span>
+              </button>
+            )}
           </div>
         </div>
         {summary && (
