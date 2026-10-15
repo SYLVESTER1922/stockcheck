@@ -1,5 +1,8 @@
 export type Tab = 'home' | 'count' | 'variance' | 'adjust' | 'report' | 'help';
 
+/** The icons of the tabs, shared with the Home tiles (T29). */
+export const TAB_ICONS = { count: '🔢', variance: '📊', adjust: '🔧', report: '🧾', help: '❓' } as const;
+
 type Props = { tab: Tab; hasSession: boolean; uncounted: number; onTab: (tab: Tab) => void };
 
 /**
@@ -8,11 +11,11 @@ type Props = { tab: Tab; hasSession: boolean; uncounted: number; onTab: (tab: Ta
  */
 export function BottomNav({ tab, hasSession, uncounted, onTab }: Props) {
   const tabs: { id: Tab; label: string; icon: string; show: boolean }[] = [
-    { id: 'count', label: 'Count', icon: '🔢', show: hasSession },
-    { id: 'variance', label: 'Variance', icon: '📊', show: hasSession },
-    { id: 'adjust', label: 'Adjust', icon: '🔧', show: hasSession },
-    { id: 'report', label: 'Report', icon: '🧾', show: hasSession },
-    { id: 'help', label: 'Help', icon: '❓', show: true },
+    { id: 'count', label: 'Count', icon: TAB_ICONS.count, show: hasSession },
+    { id: 'variance', label: 'Variance', icon: TAB_ICONS.variance, show: hasSession },
+    { id: 'adjust', label: 'Adjust', icon: TAB_ICONS.adjust, show: hasSession },
+    { id: 'report', label: 'Report', icon: TAB_ICONS.report, show: hasSession },
+    { id: 'help', label: 'Help', icon: TAB_ICONS.help, show: true },
   ];
 
   return (

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { isSuspended, type Access } from '../domain/access';
 import { parseBackup } from '../domain/backup';
 import { formatUsd } from '../domain/format';
+import { homeTileInfo } from '../domain/homeTiles';
 import type { Field } from '../domain/headers';
 import { adjustmentsGuard, markAdjustmentsReported, needsGuard } from '../domain/replaceGuard';
 import { buildReport } from '../domain/report';
@@ -115,6 +116,8 @@ export function App() {
     [session],
   );
 
+  const tiles = useMemo(() => homeTileInfo(session), [session]);
+
   /** Home shows when chosen, or whenever there is no Session (T18). The guard always takes priority. */
   const isHome = replacing !== 'guard' && (tab === 'home' || (!session && tab !== 'help'));
 
@@ -153,7 +156,7 @@ export function App() {
   const showPicker = !!session && replacing === 'pick';
 
   return (
-    <div className="flex min-h-dvh flex-col bg-slate-50 pb-[calc(6rem+env(safe-area-inset-bottom))] text-slate-900">
+    <div className={`flex min-h-dvh flex-col bg-slate-50 ${isHome ? 'pb-[calc(1rem+env(safe-area-inset-bottom))]' : 'pb-[calc(6rem+env(safe-area-inset-bottom))]'} text-slate-900`}>
       <Header summary={summary} onHome={isHome ? null : goHome} onBranch={session ? () => { setReplacing('no'); setTab('report'); } : null} />
 
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4">
@@ -175,7 +178,8 @@ export function App() {
                 onExport={onFile}
                 onRestore={onRestore}
                 onContinue={() => setTab('count')}
-                onHowTo={() => setTab('help')}
+                onOpen={setTab}
+                tiles={tiles}
               />
             )}
 
@@ -256,7 +260,7 @@ export function App() {
           </>
         )}
 
-        <footer className="mt-8 text-center text-xs text-slate-500">Version {__APP_VERSION__}</footer>
+        <footer className="mt-4 text-center text-xs text-slate-500">Version {__APP_VERSION__}</footer>
       </main>
 
       {!isHome && (

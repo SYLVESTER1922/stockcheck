@@ -7,13 +7,15 @@ type Props = {
   accept: string;
   onFile: (file: File) => void;
   variant?: 'primary' | 'secondary';
+  /** A smaller button for a secondary action (still 44 px tall). */
+  compact?: boolean;
 };
 
 /**
  * A styled file picker (T18): an invisible native input stretched over a button-like label, so it
  * keeps the browser's file dialog and accessibility while showing our text and the chosen file name.
  */
-export function FileButton({ label, text, accept, onFile, variant = 'primary' }: Props) {
+export function FileButton({ label, text, accept, onFile, variant = 'primary', compact = false }: Props) {
   const [chosen, setChosen] = useState<string | null>(null);
   const look =
     variant === 'primary'
@@ -21,9 +23,9 @@ export function FileButton({ label, text, accept, onFile, variant = 'primary' }:
       : 'border-2 border-slate-300 bg-white text-slate-800';
   return (
     <label
-      className={`relative flex min-h-14 w-full cursor-pointer flex-col items-center justify-center rounded-2xl px-4 py-2 text-center focus-within:ring-4 focus-within:ring-blue-300 ${look}`}
+      className={`relative flex ${compact ? 'min-h-12 rounded-xl' : 'min-h-14 rounded-2xl'} w-full cursor-pointer flex-col items-center justify-center px-4 py-2 text-center focus-within:ring-4 focus-within:ring-blue-300 ${look}`}
     >
-      <span className="text-base font-semibold">{text}</span>
+      <span className={compact ? 'text-sm font-semibold' : 'text-base font-semibold'}>{text}</span>
       {chosen && (
         <span className={`max-w-full truncate text-xs ${variant === 'primary' ? 'text-blue-100' : 'text-slate-600'}`}>
           Chosen: {chosen}
