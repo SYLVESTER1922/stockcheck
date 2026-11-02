@@ -7,7 +7,7 @@ import { parseWastage } from '../src/domain/wastage';
 import { writeReport } from '../src/domain/workbook';
 import { AT, ITEMS, META, reportSession } from './helpers/reportSession';
 
-// T21, ADR 0007. Insolex combines these reports outside the app, so nothing existing may move.
+// T21, ADR 0007. The client combines these reports outside the app, so nothing existing may move.
 const PARTS = ['/xl/worksheets/sheet1.xml', '/xl/worksheets/sheet2.xml', '/xl/worksheets/sheet3.xml', '/xl/styles.xml', '/xl/workbook.xml'];
 const BASELINE: Record<string, string> = JSON.parse(readFileSync('test/fixtures/report-before-t21.json', 'utf8'));
 

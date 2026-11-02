@@ -68,7 +68,7 @@ const DETAIL_COLUMNS: { header: string; width: number; format?: Format; value: (
 
 /**
  * ADR 0007: added AFTER the last column above, and only when the Session has Wastage, so a Session
- * without Wastage gives exactly the report it always did. Insolex combines these reports outside the app.
+ * without Wastage gives exactly the report it always did. The client combines these reports outside the app.
  */
 const WASTAGE_COLUMNS: typeof DETAIL_COLUMNS = [
   { header: 'Wastage', width: 10, format: 'units', value: (r) => units(r.wastage) },
